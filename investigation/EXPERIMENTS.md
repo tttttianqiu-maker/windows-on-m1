@@ -6904,3 +6904,43 @@ Status: rejected (host toolchain).
 Open issue: `tools/artifact_manifest.py` records the J313 guest contract
 (`phys_base 0x850000000`, 2560x1600) for BOARD=j613 builds and prints
 "validated j313"; assisted runs use `config/j613-guest-layout.json` directly.
+
+Note on EXP-20261105-005 recovery: after the hung chainload the Air came back
+to `Running proxy...` on a warm reboot but its USB device side never enumerated
+on any port or cable (an iPhone enumerated on the same host port). A cold boot
+(power off, all cables unplugged for 10 s) restored enumeration. Treat a cold
+boot as the required recovery after any EL2 crash or hung chainload.
+
+### EXP-20261105-006 — chainload the PSCI fix with the pre-encoded stub
+
+Status: confirmed (PSCI fix), new defect found.
+
+- artifacts: build 2 (EXP-20261105-005), host at root `b502d1b`, m1n1 `0fbe2e7`;
+- launch: `BOARD=j613 scripts/run-assisted.sh --proxy ...QL1 --vuart ...QL3
+  --display physical --debug uart --chainload --foreground`;
+- observed: chainload succeeded (screen cleared, new m1n1 logo); HV init, PSCI
+  past topology, stage-2 map (RAM-LOW, RAM-HIGH at 0x10050000000, VUART,
+  PCI-ECAM, XHCI-C-HOOK, PMGR hacks), ADT uploaded, framebuffer shut down;
+  pre-guest-start: DCP (rtkit version 12) booted, `EPIC: IOP returned
+  0xe00002c2`, `display: rejected guest surface PA=0x1005e000000 size=0x1040000
+  2560x1664 stride=10240 depth=32`, run_uefi aborted before guest entry;
+- verdict: PSCI T8122 fix confirmed on hardware; physical DCP guest-surface
+  handoff fails on the M3 DCP firmware (open);
+- next: EXP-20261105-007.
+
+### EXP-20261105-007 — virtual display only (planned)
+
+- hypothesis: with the physical DCP handoff removed, the guest starts and Mu
+  reaches its banner on the virtual UART;
+- single variable: `--display physical` -> `--display virtual` (Mu image unchanged,
+  J613_EFI.fd SHA-256 `9ce6063b45e29b4ca6a7561a68a19af93dd64f26d5083be819362859d008184b`);
+- commits: root `a87ec8e`, m1n1 `0fbe2e7`, Mu `fbee131`, clean;
+- build: `BOARD=j613 ... scripts/build-development.sh --display virtual --debug uart`;
+- artifacts: m1n1.macho `1906a0ec9e13780246cf0f8f77c9686a07bd99bb6e6d6882900034ad390451d0`,
+  boot.bin `2f0798c2d81ab49ff9483f7608a5fae6e6482ede65c22c278cbff9c01e3eb237`
+  (not installed; ESP keeps build 1);
+- launch: `run-assisted.sh ... --display virtual --debug uart --chainload --foreground`,
+  viewer `scripts/display-assisted.sh` (http://127.0.0.1:8766/);
+- expected checkpoint: `HV vGIC DEBUG: setting up distributor`, guest entry, Mu
+  banner in guest-uart.log; failure criterion: abort before guest entry or EL2
+  exception; recovery: cold boot.
