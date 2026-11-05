@@ -277,7 +277,13 @@ fi
 # ASL.  Gate the compiled table itself so a firmware image can never be
 # published after losing the generated APPL0001 resource contract.
 DSDT_AML="$ROOT/mu/Build/$MU_NAME-AARCH64/${BUILD_TARGET}_CLANGPDB/AARCH64/$MU_PKG/AcpiTables/DeviceAcpiTables/OUTPUT/DSDT.aml"
-python3 "$ROOT/tools/verify_apple_input_acpi_aml.py" "$DSDT_AML"
+# The AINP contract (MMIO bases, INTID 865) is J313-only. J613 input goes
+# through MTP/DockChannel and has no ACPI node yet, so there is nothing to gate.
+if [ "$BOARD" = j313 ]; then
+    python3 "$ROOT/tools/verify_apple_input_acpi_aml.py" "$DSDT_AML"
+else
+    echo "skipping J313 Apple input AML check for BOARD=$BOARD (no AINP node on this board yet)"
+fi
 
 [ "$MU_ONLY" != 1 ] || exit 0
 
