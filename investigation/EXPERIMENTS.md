@@ -6987,3 +6987,27 @@ Status: confirmed (guest entry and Mu DXE on T8122), new defect found.
 - expected: `HCRDIAG` lines for the hv_init write and for the faulting call,
   which the existing crash dump follows; failure criterion: no HCRDIAG line for
   the faulting call (then the trap is before the logging point).
+
+### EXP-20261105-008 — result
+
+Status: hypothesis rejected (GXF), new hypothesis.
+
+- observed: `supports_gxf=0`, `gxf_en=0`, `in_gl=0` for both calls; call 1 from
+  `hv_init` (hv.c:219) wrote 0x320800c2039 successfully (HCR then read
+  0x324800c2039, bit 38 set by hardware); call 2 from `hv_handle_msr_unlocked`
+  (hv_exc.c:877, guest ICC_PMR_EL1 write -> hv_vgic3_update_vi) wrote the value
+  already in HCR (0x324800c2039, unchanged by hv_wfx_apply_hcr) and trapped
+  at `msr HCR_EL2` (rel 0x16738), ESR 0x2000000;
+- the only HV state change between the two writes is `HACR_EL2 |= BIT(56)`
+  (hv.c, "Preserve the PMUv3 trap"); upstream m1n1 never sets bit 56;
+- verdict: GXF/SPRR hypothesis rejected; HACR bit 56 is the leading suspect.
+
+### EXP-20261105-009 — skip HACR bit 56 on T8122 (planned)
+
+- single variable: HACR_EL2 bit 56 not set when chip_id == T8122; HCR_DIAG
+  logging kept on;
+- commits: root `6f4d026cd486329e12a6894b51faf283a4450310`, m1n1 `76514c01804b8d85c5aac85532b5e25d3ad9645f`, Mu `fbee131`;
+- artifacts: see dist/j613/debug-uart/SHA256SUMS of this build (m1n1.macho
+  `13096c468ed162e90aaed0d7c129002db3669c9558979840b4b427de99ddbb26`);
+- expected: no EC 0 trap at the ICC_PMR path; Mu continues past ArmGicDxe;
+  failure criterion: the same trap (rejects the hypothesis).
