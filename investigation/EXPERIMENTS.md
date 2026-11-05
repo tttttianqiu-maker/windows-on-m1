@@ -6971,3 +6971,19 @@ Status: confirmed (guest entry and Mu DXE on T8122), new defect found.
 - next: EXP-20261105-008, diagnostic only: log gxf_enabled, in_gl12,
   SPRR_CONFIG_EL1, GXF_CONFIG_EL1 and the caller of hv_write_hcr once per CPU
   on the first call after guest entry; no behavior change.
+
+### EXP-20261105-008 — HCR_EL2 write diagnostic (planned)
+
+- hypothesis: the failing `msr HCR_EL2` runs in a different GXF/SPRR state than
+  the successful hv_init write;
+- single variable: `HCR_DIAG=1` logging only (no behavior change), same
+  `--display virtual --debug uart` profile and unchanged Mu;
+- commits: root `0aea4b09b1b9fb2f796c730eb95b85e3249219d3`, m1n1
+  `2165391299231d4bc69fc1687d1f8c718dff1c29`, Mu `fbee131`, clean;
+- build: `HCR_DIAG=1 BOARD=j613 ... scripts/build-development.sh --display virtual --debug uart`;
+- artifacts: m1n1.macho `8c9939531ce64f23683d4969f441a8943259b0d257c365628574de41cbc84e9a`,
+  J613_EFI.fd `9ce6063b...`, boot.bin `dbb97022...` (not installed);
+- launch: as EXP-20261105-007 after a cold boot;
+- expected: `HCRDIAG` lines for the hv_init write and for the faulting call,
+  which the existing crash dump follows; failure criterion: no HCRDIAG line for
+  the faulting call (then the trap is before the logging point).
