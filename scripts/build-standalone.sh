@@ -110,7 +110,7 @@ if [ "$USE_CONTAINER" = 1 ] && [ "$CHECK_PYTHON" = 0 ] && [ "${STANDALONE_IN_CON
     IMAGE=windows-on-m1-build:local
     if [ "$DRY_RUN" = 1 ]; then
         echo "docker build -t $IMAGE -f <repository-root>/Dockerfile.build <repository-root>"
-        echo "docker run --rm -e STANDALONE_IN_CONTAINER=1 -e STANDALONE_BUILD_MU_ONLY=1 -e STANDALONE_PRESERVE_COMPONENTS=$PRESERVE_COMPONENTS -v <git-worktree-root>:/work -v <git-worktree-root>:<git-worktree-root> -w <container-repository-root> $IMAGE scripts/build-standalone.sh ${M1N1_RELEASE:+--release }--display $DISPLAY --debug $DEBUG"
+        echo "docker run --rm -e STANDALONE_IN_CONTAINER=1 -e BOARD=$BOARD -e STANDALONE_BUILD_MU_ONLY=1 -e STANDALONE_PRESERVE_COMPONENTS=$PRESERVE_COMPONENTS -v <git-worktree-root>:/work -v <git-worktree-root>:<git-worktree-root> -w <container-repository-root> $IMAGE scripts/build-standalone.sh ${M1N1_RELEASE:+--release }--display $DISPLAY --debug $DEBUG"
     else
         COMMON_DIR=$(git -C "$ROOT" rev-parse --path-format=absolute --git-common-dir)
         MOUNT_ROOT=$(dirname "$COMMON_DIR")
@@ -132,6 +132,7 @@ if [ "$USE_CONTAINER" = 1 ] && [ "$CHECK_PYTHON" = 0 ] && [ "${STANDALONE_IN_CON
         set -- "$@" --display "$DISPLAY" --debug "$DEBUG"
         docker run --rm \
             -e STANDALONE_IN_CONTAINER=1 \
+            -e BOARD="$BOARD" \
             -e STANDALONE_BUILD_MU_ONLY=1 \
             -e STANDALONE_PRESERVE_COMPONENTS="$PRESERVE_COMPONENTS" \
             -v "$MOUNT_ROOT:/work" \
