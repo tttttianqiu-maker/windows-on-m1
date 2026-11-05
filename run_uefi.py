@@ -268,7 +268,7 @@ capture_contract(1, 2)
 # hv_init() installs the in-hypervisor xHCI MMIO diagnostic hook.  Keep the final
 # pt_update() from replacing its 16 KiB stage-2 entry with the broad /arm-io hardware
 # pass-through mapping (the same ordering rule as the PCI ECAM C hook).
-hv.add_tracer(irange(0x502280000, 0x4000), "J313-XHCI-C-HOOK", TraceMode.RESERVED)
+hv.add_tracer(irange(layout.xhci_base, 0x4000), "XHCI-C-HOOK", TraceMode.RESERVED)  # J313 0x502280000, J613 0xb02280000
 hv.tba.video.base = fb.base
 hv.tba.video.width = fb.width
 hv.tba.video.height = fb.height

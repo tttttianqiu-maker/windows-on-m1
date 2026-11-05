@@ -56,8 +56,8 @@ case "$DEBUG" in
     full) PROFILE=debug-forensic ;;
     monitor) PROFILE=debug-monitor ;;
 esac
-[ -n "$FIRMWARE" ] || FIRMWARE="$ROOT/dist/j313/$PROFILE/J313_EFI.fd"
-[ -n "$M1N1" ] || M1N1="$ROOT/dist/j313/$PROFILE/m1n1.macho"
+[ -n "$FIRMWARE" ] || FIRMWARE="$ROOT/dist/${BOARD:-j313}/$PROFILE/$( [ "${BOARD:-j313}" = j613 ] && echo J613_EFI.fd || echo J313_EFI.fd )"
+[ -n "$M1N1" ] || M1N1="$ROOT/dist/${BOARD:-j313}/$PROFILE/m1n1.macho"
 
 discover_ports() {
     [ -n "$PROXY" ] && { [ "$DEBUG" = off ] || [ -n "$VUART" ]; } && return
@@ -160,6 +160,7 @@ if [ "$DEBUG" != off ]; then
 fi
 
 set -- "$FIRMWARE" --device "$PROXY" --display-mode "$DISPLAY" --debug-mode "$DEBUG"
+[ "${BOARD:-j313}" = j313 ] || set -- "$@" --layout "$ROOT/config/${BOARD}-guest-layout.json"
 [ -z "$RAMDISK" ] || set -- "$@" --ramdisk "$RAMDISK"
 [ -z "$CONTRACT_OUTPUT" ] || set -- "$@" --contract-output "$CONTRACT_OUTPUT"
 [ "$LOW_MEM" -eq 0 ] || set -- "$@" --low-mem

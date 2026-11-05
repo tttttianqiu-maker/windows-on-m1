@@ -2,6 +2,16 @@
 set -eu
 
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+
+# Board selection: BOARD=j313 (M1 MacBook Air, default) or BOARD=j613 (M3 MacBook Air 13").
+BOARD=${BOARD:-j313}
+case "$BOARD" in
+    j313) MU_PKG=MacBookAirMid2020Pkg; MU_NAME=MacBookAirMid2020
+          FD_FILE=J313MACBOOKAIRMID2020_EFI.fd; FD_OUT=$FD_OUT ;;
+    j613) MU_PKG=MacBookAirM3J613Pkg; MU_NAME=MacBookAirM3J613
+          FD_FILE=MACBOOKAIRM3J613_EFI.fd; FD_OUT=J613_EFI.fd ;;
+    *) echo "unknown BOARD=$BOARD (expected j313 or j613)" >&2; exit 2 ;;
+esac
 DRY_RUN=${BUILD_STANDALONE_DRY_RUN:-0}
 BUILD_TARGET=RELEASE
 M1N1_RELEASE=1
@@ -191,28 +201,28 @@ if [ "$DRY_RUN" = 1 ]; then
 cd <repository-root>
 $COMPONENT_SETUP
 $MU_PYTHON_SELECTED -m venv .build/mu-venv
-.build/mu-venv/bin/stuart_setup -c Platform/MacBookAirMid2020Pkg/PlatformBuild.py TOOL_CHAIN_TAG=CLANGPDB
-.build/mu-venv/bin/stuart_update -c Platform/MacBookAirMid2020Pkg/PlatformBuild.py TOOL_CHAIN_TAG=CLANGPDB
-.build/mu-venv/bin/stuart_build -c Platform/MacBookAirMid2020Pkg/PlatformBuild.py TOOL_CHAIN_TAG=CLANGPDB TARGET=$BUILD_TARGET BLD_*_AIC_BUILD=FALSE
-mkdir -p dist/j313/$ARTIFACT_PROFILE
-create temporary sibling for dist/j313/$ARTIFACT_PROFILE
+.build/mu-venv/bin/stuart_setup -c Platform/$MU_PKG/PlatformBuild.py TOOL_CHAIN_TAG=CLANGPDB
+.build/mu-venv/bin/stuart_update -c Platform/$MU_PKG/PlatformBuild.py TOOL_CHAIN_TAG=CLANGPDB
+.build/mu-venv/bin/stuart_build -c Platform/$MU_PKG/PlatformBuild.py TOOL_CHAIN_TAG=CLANGPDB TARGET=$BUILD_TARGET BLD_*_AIC_BUILD=FALSE
+mkdir -p dist/$BOARD/$ARTIFACT_PROFILE
+create temporary sibling for dist/$BOARD/$ARTIFACT_PROFILE
 make -C m1n1_windows clean
 make -C m1n1_windows -j$JOBS ${M1N1_RELEASE:+RELEASE=1} $M1N1_DIAG EXTRA_CFLAGS=-DM1N1_STAGE0
-copy m1n1_windows/build/m1n1.bin to dist/j313/$ARTIFACT_PROFILE/m1n1-stage0.bin
+copy m1n1_windows/build/m1n1.bin to dist/$BOARD/$ARTIFACT_PROFILE/m1n1-stage0.bin
 make -C m1n1_windows clean
 make -C m1n1_windows -j$JOBS ${M1N1_RELEASE:+RELEASE=1} $M1N1_DIAG EXTRA_CFLAGS=-DM1N1_STAGE1
-copy m1n1_windows/build/m1n1.bin to dist/j313/$ARTIFACT_PROFILE/m1n1-stage1.bin
+copy m1n1_windows/build/m1n1.bin to dist/$BOARD/$ARTIFACT_PROFILE/m1n1-stage1.bin
 make -C m1n1_windows clean
 build plain chainload m1n1.macho
 make -C m1n1_windows -j$JOBS ${M1N1_RELEASE:+RELEASE=1} $M1N1_DIAG
-copy plain m1n1.macho to dist/j313/$ARTIFACT_PROFILE/m1n1.macho
+copy plain m1n1.macho to dist/$BOARD/$ARTIFACT_PROFILE/m1n1.macho
 python3 tools/generate_guest_layout.py --check
-python3 tools/pack_boot.py --stage0-m1n1 dist/j313/$ARTIFACT_PROFILE/m1n1-stage0.bin --stage1-m1n1 dist/j313/$ARTIFACT_PROFILE/m1n1-stage1.bin --firmware mu/Build/MacBookAirMid2020-AARCH64/${BUILD_TARGET}_CLANGPDB/FV/J313MACBOOKAIRMID2020_EFI.fd --layout config/j313-guest-layout.json --output dist/j313/$ARTIFACT_PROFILE/boot.bin --display $DISPLAY --debug $DEBUG --source-commit <m1n1-source-commit> --compiler <compiler-identity>
-PYTHONPATH=. python3 -c 'from pathlib import Path; from bootstrap_image import parse_bootstrap; from standalone_image import parse_image; outer, inner = parse_bootstrap(Path("dist/j313/$ARTIFACT_PROFILE/boot.bin").read_bytes()); nested, firmware = parse_image(inner); assert outer.flags == nested.flags; print("validated outer parse_bootstrap and nested parse_image")'
-copy m1n1.macho and J313_EFI.fd to dist/j313/$ARTIFACT_PROFILE
-write dist/j313/$ARTIFACT_PROFILE/SHA256SUMS and dist/j313/$ARTIFACT_PROFILE/MANIFEST.json
-python3 tools/artifact_manifest.py create ${MANIFEST_DIRTY:+--allow-dirty }--root <repository-root> --directory dist/j313/$ARTIFACT_PROFILE --profile $PROFILE
-publish complete profile atomically to dist/j313/$ARTIFACT_PROFILE
+python3 tools/pack_boot.py --stage0-m1n1 dist/$BOARD/$ARTIFACT_PROFILE/m1n1-stage0.bin --stage1-m1n1 dist/$BOARD/$ARTIFACT_PROFILE/m1n1-stage1.bin --firmware mu/Build/$MU_NAME-AARCH64/${BUILD_TARGET}_CLANGPDB/FV/$FD_FILE --layout config/$BOARD-guest-layout.json --output dist/$BOARD/$ARTIFACT_PROFILE/boot.bin --display $DISPLAY --debug $DEBUG --source-commit <m1n1-source-commit> --compiler <compiler-identity>
+PYTHONPATH=. python3 -c 'from pathlib import Path; from bootstrap_image import parse_bootstrap; from standalone_image import parse_image; outer, inner = parse_bootstrap(Path("dist/$BOARD/$ARTIFACT_PROFILE/boot.bin").read_bytes()); nested, firmware = parse_image(inner); assert outer.flags == nested.flags; print("validated outer parse_bootstrap and nested parse_image")'
+copy m1n1.macho and $FD_OUT to dist/$BOARD/$ARTIFACT_PROFILE
+write dist/$BOARD/$ARTIFACT_PROFILE/SHA256SUMS and dist/$BOARD/$ARTIFACT_PROFILE/MANIFEST.json
+python3 tools/artifact_manifest.py create ${MANIFEST_DIRTY:+--allow-dirty }--root <repository-root> --directory dist/$BOARD/$ARTIFACT_PROFILE --profile $PROFILE
+publish complete profile atomically to dist/$BOARD/$ARTIFACT_PROFILE
 EOF
     exit 0
 fi
@@ -249,7 +259,7 @@ if [ "$SKIP_MU" != 1 ]; then
     "$VENV/bin/pip" install -q -r "$ROOT/mu/pip-requirements.txt"
     "$VENV/bin/pip" install -q "setuptools<81" wheel
 
-    PLATFORM=Platform/MacBookAirMid2020Pkg/PlatformBuild.py
+    PLATFORM=Platform/$MU_PKG/PlatformBuild.py
     (
         cd "$ROOT/mu"
         "$VENV/bin/stuart_setup" -c "$PLATFORM" TOOL_CHAIN_TAG=CLANGPDB
@@ -265,12 +275,12 @@ fi
 # EDK2's second Trim pass silently discards C-preprocessor include bodies from
 # ASL.  Gate the compiled table itself so a firmware image can never be
 # published after losing the generated APPL0001 resource contract.
-DSDT_AML="$ROOT/mu/Build/MacBookAirMid2020-AARCH64/${BUILD_TARGET}_CLANGPDB/AARCH64/MacBookAirMid2020Pkg/AcpiTables/DeviceAcpiTables/OUTPUT/DSDT.aml"
+DSDT_AML="$ROOT/mu/Build/$MU_NAME-AARCH64/${BUILD_TARGET}_CLANGPDB/AARCH64/$MU_PKG/AcpiTables/DeviceAcpiTables/OUTPUT/DSDT.aml"
 python3 "$ROOT/tools/verify_apple_input_acpi_aml.py" "$DSDT_AML"
 
 [ "$MU_ONLY" != 1 ] || exit 0
 
-PROFILE_PARENT="$ROOT/dist/j313"
+PROFILE_PARENT="$ROOT/dist/$BOARD"
 FINAL_DIST="$PROFILE_PARENT/$ARTIFACT_PROFILE"
 mkdir -p "$PROFILE_PARENT"
 DIST=$(mktemp -d "$PROFILE_PARENT/.${ARTIFACT_PROFILE}.new.XXXXXX")
@@ -312,12 +322,12 @@ trap cleanup_staging EXIT HUP INT TERM
 
 python3 "$ROOT/tools/generate_guest_layout.py" --check
 
-FD="$ROOT/mu/Build/MacBookAirMid2020-AARCH64/${BUILD_TARGET}_CLANGPDB/FV/J313MACBOOKAIRMID2020_EFI.fd"
+FD="$ROOT/mu/Build/$MU_NAME-AARCH64/${BUILD_TARGET}_CLANGPDB/FV/$FD_FILE"
 python3 "$ROOT/tools/pack_boot.py" \
     --stage0-m1n1 "$DIST/m1n1-stage0.bin" \
     --stage1-m1n1 "$DIST/m1n1-stage1.bin" \
     --firmware "$FD" \
-    --layout "$ROOT/config/j313-guest-layout.json" \
+    --layout "$ROOT/config/$BOARD-guest-layout.json" \
     --output "$DIST/boot.bin" \
     --display "$DISPLAY" \
     --debug "$DEBUG" \
@@ -326,7 +336,7 @@ python3 "$ROOT/tools/pack_boot.py" \
 PYTHONPATH="$ROOT" python3 -c \
     'from pathlib import Path; import sys; from bootstrap_image import parse_bootstrap; from standalone_image import parse_image; outer, inner = parse_bootstrap(Path(sys.argv[1]).read_bytes()); nested, firmware = parse_image(inner); assert outer.flags == nested.flags; print(f"Validated outer flags={outer.flags:#x}, nested flags={nested.flags:#x}, firmware={len(firmware)} bytes")' \
     "$DIST/boot.bin"
-cp "$FD" "$DIST/J313_EFI.fd"
+cp "$FD" "$DIST/$FD_OUT"
 
 if [ "$PROFILE" = release ]; then
     python3 "$ROOT/tools/check_release_binary.py" "$DIST/m1n1.macho"
@@ -335,15 +345,15 @@ fi
 (
     cd "$DIST"
     if command -v sha256sum >/dev/null 2>&1; then
-        sha256sum boot.bin m1n1-stage0.bin m1n1-stage1.bin m1n1.macho J313_EFI.fd >SHA256SUMS
+        sha256sum boot.bin m1n1-stage0.bin m1n1-stage1.bin m1n1.macho $FD_OUT >SHA256SUMS
     else
-        shasum -a 256 boot.bin m1n1-stage0.bin m1n1-stage1.bin m1n1.macho J313_EFI.fd >SHA256SUMS
+        shasum -a 256 boot.bin m1n1-stage0.bin m1n1-stage1.bin m1n1.macho $FD_OUT >SHA256SUMS
     fi
 )
 python3 "$ROOT/tools/artifact_manifest.py" create $MANIFEST_DIRTY \
     --root "$ROOT" --directory "$DIST" --profile "$PROFILE" \
     --display "$DISPLAY" --debug "$DEBUG" --compiler "$M1N1_COMPILER" \
-    boot.bin m1n1-stage0.bin m1n1-stage1.bin m1n1.macho J313_EFI.fd
+    boot.bin m1n1-stage0.bin m1n1-stage1.bin m1n1.macho $FD_OUT
 
 BACKUP="$PROFILE_PARENT/.${PROFILE}.old.$$"
 if [ -e "$FINAL_DIST" ]; then

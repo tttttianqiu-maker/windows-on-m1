@@ -50,6 +50,6 @@ if [ "$BUILD_MODE" != --release ]; then
         monitor) PROFILE=debug-monitor ;;
     esac
 fi
-echo "development m1n1: $ROOT/dist/j313/$PROFILE/m1n1.macho"
-echo "development Mu: $ROOT/dist/j313/$PROFILE/J313_EFI.fd"
-echo "chainload with: m1n1_windows/proxyclient/tools/chainload.py dist/j313/$PROFILE/m1n1.macho"
+echo "development m1n1: $ROOT/dist/${BOARD:-j313}/$PROFILE/m1n1.macho"
+echo "development Mu: $ROOT/dist/${BOARD:-j313}/$PROFILE/$( [ "${BOARD:-j313}" = j613 ] && echo J613_EFI.fd || echo J313_EFI.fd )"
+echo "chainload with: m1n1_windows/proxyclient/tools/chainload.py dist/${BOARD:-j313}/$PROFILE/m1n1.macho"
