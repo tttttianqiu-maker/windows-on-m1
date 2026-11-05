@@ -7051,3 +7051,11 @@ Status: confirmed (more Mu DXE progress), defect characterized.
 - next candidates, one at a time: (a) read SPRR_CONFIG_EL1 / GXF_CONFIG_EL1
   unconditionally (diagnostic) to learn whether iBoot left SPRR/GXF enabled;
   (b) only then consider T8122 MIDR/feature wiring.
+
+### EXP-20261105-011 — read real SPRR/GXF state (planned)
+
+- single variable: HCR_DIAG reads AIDR_EL1 and, if AIDR advertises GXF,
+  SPRR_CONFIG_EL1 / GXF_CONFIG_EL1 / GXF_STATUS_EL1; diagnostic only, m1n1 cd3494e;
+- expected: whether iBoot left SPRR enabled at the faulting HCR write;
+- failure criterion: the reads themselves trap (then those registers are not
+  accessible at EL2 on T8122, also a result).
