@@ -6805,3 +6805,102 @@ reported the desktop stable and smooth and authorized publication.  This exact
 both/monitor assisted candidate is therefore the new eight-core recovery
 checkpoint; the ESP was not modified and standalone cold-boot qualification
 remains a separate gate.
+
+## J613 (M3 MacBook Air 13", Mac15,12) bring-up — 2026-11-05
+
+Host: Intel macOS 26.7.2 Hackintosh ("TQ-StrixG16", USB-A port on XHC1; its
+USB-C port behind the ASMedia controller never enumerated the target).
+Build host: Ubuntu 24.04, clang 18.1.3, Python 3.12, equivalent to Dockerfile.build.
+Recovery artifact for every J613 run: stock Asahi `boot.bin` SHA-256
+`f4ce681bdb07cc897eb997a37858712b1ffc48ae1b4770e4d05b982ecffb1f23`, backed up by
+`install-esp.sh` to `/var/backups/m1n1-windows/disk0s4.boot.bin.original` and to
+`~/Desktop/asahi-boot.bin.original` on the Air. Rollback:
+`sudo scripts/install-esp.sh restore --disk disk0s4`.
+
+These entries were written after the runs (the ledger requirement was found
+mid-session); the "before" fields are reconstructed from the commands and
+artifacts actually used, not from a pre-run record.
+
+### EXP-20261105-001 — first J613 boot of a project boot.bin from the Asahi ESP
+
+Status: inconclusive for Windows, confirmed for m1n1 bring-up.
+
+- hypothesis: a BOARD=j613 debug-uart boot.bin loads from the Asahi stub ESP and
+  m1n1 reaches its standalone launcher on T8122;
+- commits: root `2fd4b00631e8db0d831f62d4bdc75b21f8b2358d`, m1n1
+  `a029e24e56a6d946994543bc705b0b3a53cd5c3f`, Mu
+  `fbee131a46ab7fc100fe66e4e1b55ef233624289`;
+- build: `BOARD=j613 STANDALONE_BUILD_CONTAINER=never MU_PYTHON=/usr/bin/python3.12
+  scripts/build-development.sh --debug uart`;
+- install: `sudo scripts/install-esp.sh install --disk disk0s4 --image
+  dist/j613/debug-uart/boot.bin`, boot.bin SHA-256
+  `5df1071a00078217e31a9425373ba4c06b7ff63875f0614b3574bfb7b5560505`;
+- preceded by the Asahi step2 (boot policy for the "Windows 11" volume only);
+- observed: m1n1 on Mac15,12/J613/T8122, AIC3 1600 IRQs, pmgr 307 devices,
+  display 2560x1664, both USB DARTs t8110, `Standalone: image valid`,
+  3-second host window, then `PREFLIGHT FAIL checkpoint=PRE_HV_INIT field=11
+  expected=0x18f708000 actual=0x1b0000000` and `Running proxy...`;
+- cause: the standalone preflight compares against the hard-coded J313 golden
+  contract (`hv_launch_golden_j313.c`); `cpufreq: Chip 0x8122 is unsupported`;
+- verdict: m1n1 boot on M3 confirmed; standalone launch rejected by J313-only
+  golden contract (open);
+- next: assisted mode, which does not depend on the standalone golden contract.
+
+### EXP-20261105-002 — first assisted run (host Python 3.9)
+
+Status: rejected (host environment).
+
+- launch: `BOARD=j613 scripts/run-assisted.sh --display physical --debug uart --foreground`;
+- observed: `run_uefi.py` import failed, `virtual_display.py` PEP 604 annotation
+  under the Command Line Tools Python 3.9; target untouched;
+- fix: proxyenv rebuilt with uv Python 3.12.16.
+
+### EXP-20261105-003 — assisted run, cpufreq preflight
+
+Status: rejected (host preflight).
+
+- observed: proxy connected (`cpufreq: Initializing clusters`), then
+  `CPU frequency preflight failed: cpufreq_init=-1` (no T8122 cpufreq table);
+- change: root `3a929c267b0cbecc933e15100679d76495cbd446` adds the opt-in
+  `--allow-unsupported-cpufreq`, passed only for BOARD=j613.
+
+### EXP-20261105-004 — assisted run past cpufreq
+
+Status: confirmed defect.
+
+- commits: root `3a929c2`, same m1n1/Mu as EXP-20261105-001, no chainload
+  (the ESP m1n1 served as the hypervisor);
+- observed: ADT fetched, phys_base pinned `0x10050000000`, CPUs 0-3 and 5-7
+  started, `HV: Initializing for 42-bit PA range`, Apple input passthrough
+  disabled (no J313 SPI nodes, expected), HACR, PSCI, `PSCI DEBUG: topology tree
+  selected`, then EL2 SYNC data abort ESR `0x96000006` FAR `0x1`, target reboot;
+  log saved on the host as `runs/hv.log`;
+- cause: `hv_psci_init` has no T8122 case, `topology_tree` stays NULL and
+  `topology_tree[1]` is read (FAR 0x1); the CPU start offset switch also lacks
+  T8122;
+- fix: m1n1 `fa69a14c178c7198d39cb9ae708f9a1fb8a01398` (T8112 4E+4P tree and
+  start offset, matching smp.c; unknown chips fail loudly).
+
+### EXP-20261105-005 — chainload of the PSCI fix
+
+Status: rejected (host toolchain).
+
+- artifacts: build 2 from root `3aa8b21697422fcab6636e04cfec8347e4ab9c1f`, m1n1
+  `fa69a14`, Mu `fbee131`; m1n1.macho SHA-256
+  `289b43d4bdd4196ea0f389b9460ffd583d994b252d52c64e768882aecaf78132`, J613_EFI.fd
+  `9ce6063b45e29b4ca6a7561a68a19af93dd64f26d5083be819362859d008184b`, boot.bin
+  `8e796846b560c1b150a9bffe70cdf9cc0159534c3878f6f7f1b969bfcaa9f89a` (not installed);
+- launch: `run-assisted.sh ... --chainload`;
+- observed: image, SEPFW, RVBARs and ADT pushed, then `chainload.py` failed
+  assembling its stub (no clang on the Intel host); target left hung with no
+  USB endpoints;
+- fix: m1n1 `0fbe2e7f0d65d5a24a12cc16b6f161a06b7594a2` ships the stub
+  pre-encoded; root `b502d1b73470af590c005ad9165f46f6cb0a4af9` adds the test;
+- next: EXP-20261105-006, same build 2 artifacts, chainload with the
+  pre-encoded stub. Expected checkpoint: past `PSCI DEBUG: populating power
+  domain tree` to `HV vGIC DEBUG: setting up distributor`; failure criterion:
+  any EL2 exception or reboot before vGIC setup.
+
+Open issue: `tools/artifact_manifest.py` records the J313 guest contract
+(`phys_base 0x850000000`, 2560x1600) for BOARD=j613 builds and prints
+"validated j313"; assisted runs use `config/j613-guest-layout.json` directly.
