@@ -7031,3 +7031,23 @@ Status: hypothesis rejected.
   val != cur shows whether any guest-trap-context HCR write traps;
 - failure criterion: the same trap at a write with val == cur (then the
   logging is not where the trap is).
+
+### EXP-20261105-010 — result
+
+Status: confirmed (more Mu DXE progress), defect characterized.
+
+- observed: with no-op writes skipped, Mu loaded past ArmGicDxe: ArmTimerDxe.efi
+  and HiiDatabase.efi (protocols installed); HCRDIAG n=4 was the first HCR change
+  (set VI, 0x324800c2039 -> 0x324800c20b9) from the vGIC path, and it trapped
+  with ESR 0x2000000 at `msr HCR_EL2` (rel 0x16744), FAR 0x2a1200020; log
+  `runs/exp010-hv.log` on the host;
+- conclusion: on T8122 every HCR_EL2 write from the guest trap path traps,
+  independent of value; the hv_init write before guest entry succeeds;
+- related finding: the fork has no MIDR entries for T8122 (parts 0x42 Sawtooth,
+  0x43 Everest per upstream midr.h), so the core is "Unknown": no chicken init
+  and empty cpu_features (mmu_sprr false, so supports_gxf() is false and the
+  logged SPRR/GXF values were never read). Upstream maps them to features_m3
+  with init_t8122_* (GPL-2.0, read only). Not yet shown to be related;
+- next candidates, one at a time: (a) read SPRR_CONFIG_EL1 / GXF_CONFIG_EL1
+  unconditionally (diagnostic) to learn whether iBoot left SPRR/GXF enabled;
+  (b) only then consider T8122 MIDR/feature wiring.
