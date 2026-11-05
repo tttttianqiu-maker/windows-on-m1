@@ -6944,3 +6944,30 @@ Status: confirmed (PSCI fix), new defect found.
 - expected checkpoint: `HV vGIC DEBUG: setting up distributor`, guest entry, Mu
   banner in guest-uart.log; failure criterion: abort before guest entry or EL2
   exception; recovery: cold boot.
+
+### EXP-20261105-007 — result
+
+Status: confirmed (guest entry and Mu DXE on T8122), new defect found.
+
+- launch as planned, `--display virtual`, after a cold boot; chainload OK
+  (`m1n1 0fbe2e7`, `Proxy is alive again`);
+- observed: guest entered; Project Mu ran as the guest and logged on the
+  hypervisor TTY (`FW>`): full UEFI memory map up to 0x103DE58C000,
+  `InitializePageAttributesForMemoryProtectionPolicy`, then loaded
+  `ArmGicDxe.efi` at 0x103DBDB9000; vGIC logged the first redistributor access
+  for frames 0-4 from CPU 4; then EL2 SYNC, ESR `0x2000000` (EC 0, unknown),
+  PC rel `0x16608`, MPIDR `0x80010100`, SPSR `0x600003c9`; target rebooted;
+  guest-uart.log empty (Mu output went to the HV TTY); logs on the host in
+  `runs/exp007/`;
+- symbolized against the identical m1n1.macho build (SHA-256 1906a0ec...):
+  `hv_write_hcr` (src/hv.c:625), instruction `0xd51c1113` = `msr HCR_EL2, x19`,
+  x19 = `0x324800c2039` (VM FMO IMO AMO TWI TID3 TSC RW E2H TEA APK API);
+- the same function is unchanged in upstream m1n1 (70757dc, now GPL-2.0, read
+  only); the initial HCR write in hv_init succeeded, so the trap depends on the
+  CPU state of this later call (guarded GXF/SPRR state is the leading
+  hypothesis, not yet measured);
+- verdict: guest entry and Mu DXE confirmed on hardware; EL2 HCR_EL2 write
+  from the vGIC/exception path is rejected on T8122 (open);
+- next: EXP-20261105-008, diagnostic only: log gxf_enabled, in_gl12,
+  SPRR_CONFIG_EL1, GXF_CONFIG_EL1 and the caller of hv_write_hcr once per CPU
+  on the first call after guest entry; no behavior change.
