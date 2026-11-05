@@ -161,6 +161,8 @@ fi
 
 set -- "$FIRMWARE" --device "$PROXY" --display-mode "$DISPLAY" --debug-mode "$DEBUG"
 [ "${BOARD:-j313}" = j313 ] || set -- "$@" --layout "$ROOT/config/${BOARD}-guest-layout.json"
+# m1n1 has no T8122 cpufreq table yet; J613 bring-up runs at boot clocks.
+[ "${BOARD:-j313}" != j613 ] || set -- "$@" --allow-unsupported-cpufreq
 [ -z "$RAMDISK" ] || set -- "$@" --ramdisk "$RAMDISK"
 [ -z "$CONTRACT_OUTPUT" ] || set -- "$@" --contract-output "$CONTRACT_OUTPUT"
 [ "$LOW_MEM" -eq 0 ] || set -- "$@" --low-mem

@@ -24,6 +24,8 @@ ap = argparse.ArgumentParser()
 ap.add_argument("payload", nargs="?", type=pathlib.Path)
 ap.add_argument("--dry-run", action="store_true",
                 help="validate and print the virtual framebuffer contract without USB")
+ap.add_argument("--allow-unsupported-cpufreq", action="store_true",
+                help="continue at boot clocks when m1n1 has no cpufreq table for this SoC (J613 bring-up)")
 ap.add_argument("--layout", type=pathlib.Path, default=DEFAULT_LAYOUT_PATH,
                 help="canonical J313 guest-layout JSON")
 ap.add_argument("--device", default=os.environ.get("M1N1DEVICE"))
@@ -135,8 +137,11 @@ p = M1N1Proxy(iface, debug=False)
 bootstrap_port(iface, p)
 cpufreq_result = p.cpufreq_init()
 if cpufreq_result != 0:
-    raise RuntimeError(f"CPU frequency preflight failed: cpufreq_init={cpufreq_result}")
-print("CPU frequency preflight: clusters raised to their configured performance states")
+    if not args.allow_unsupported_cpufreq:
+        raise RuntimeError(f"CPU frequency preflight failed: cpufreq_init={cpufreq_result}")
+    print(f"WARNING: cpufreq_init={cpufreq_result:#x}: SoC unsupported, CPUs stay at boot clocks")
+else:
+    print("CPU frequency preflight: clusters raised to their configured performance states")
 u = ProxyUtils(p, heap_size=768 * 1024 * 1024)
 hv = HV(iface, p, u)
 
