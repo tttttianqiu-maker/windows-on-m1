@@ -7011,3 +7011,23 @@ Status: hypothesis rejected (GXF), new hypothesis.
   `13096c468ed162e90aaed0d7c129002db3669c9558979840b4b427de99ddbb26`);
 - expected: no EC 0 trap at the ICC_PMR path; Mu continues past ArmGicDxe;
   failure criterion: the same trap (rejects the hypothesis).
+
+### EXP-20261105-009 — result
+
+Status: hypothesis rejected.
+
+- observed: `DEBUG: T8122: leaving HACR_EL2 bit 56 clear (hacr=0x0)`; SARTv3
+  sart-ans and `nvme: initialized at 0x30dcc0000` (first NVMe bring-up on
+  T8122); Mu reached ArmGicDxe as before; HCRDIAG call 2 again from
+  hv_handle_msr_unlocked with val == cur 0x324800c2039, same EC 0 trap at
+  rel 0x16738; log `runs/exp009-hv.log` on the host;
+- verdict: HACR bit 56 is not the cause (HACR was already 0). The m1n1 change
+  (76514c0) is kept only as harmless; it is not a fix.
+
+### EXP-20261105-010 — skip no-op HCR_EL2 writes (planned)
+
+- single variable: hv_write_hcr skips the msr when HCR already holds the value;
+- expected: Mu continues past the ICC_PMR write; the next HCRDIAG with
+  val != cur shows whether any guest-trap-context HCR write traps;
+- failure criterion: the same trap at a write with val == cur (then the
+  logging is not where the trap is).
