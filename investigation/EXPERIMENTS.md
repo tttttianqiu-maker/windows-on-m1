@@ -7287,3 +7287,27 @@ Status: rejected (media format).
   sources/install.wim for a later DISM apply; target artifacts unchanged
   (build 12);
 - expected/failure criteria as EXP-019.
+
+### EXP-20261106-020 — result
+
+Status: confirmed (Windows kernel executes on J613), new defect found.
+
+- observed: `J613:` script ran from the FAT32 WINBOOT partition; Windows Boot
+  Manager drew the Windows logo on the virtual display (14:22); the guest then
+  executed in the Windows kernel address space and repeatedly took
+  `HV: Unmapped IPA 0xf20000000`, `HV UNHANDLED SYNC: cpu=4 ec=0x24
+  elr=0xfffff8029dcb0e90 esr=0x93890006 far=0xfffff7b3c0005000` (32-bit load,
+  DFSC translation fault L2); the host snapshot handler kept resuming the
+  guest, so the same fault repeated (hv.log grew past 10 million lines); the
+  logo stayed static (checked at 14:39);
+- cause (source): T8122 MADT ITS base was the T810X literal 0xF20000000, but
+  m1n1 maps the T8122 vGIC ITS at ITS_BASE_42_BIT 0x5200000000 (dist and
+  redist bases already matched);
+- fix: Mu `ae70694e1f9b04ae4aa03533a82f5f6a0aab1603`;
+- verdict: Windows boot manager, winload and early kernel run on T8122.
+
+### EXP-20261106-021 — MADT ITS at 0x5200000000 (planned)
+
+- single variable: MADT ITS base; m1n1 unchanged (7a7f6ec, build 12 config);
+- expected: no unmapped access at 0xf20000000; kernel proceeds (spinning
+  dots, Setup page or a bugcheck with a stop code).
