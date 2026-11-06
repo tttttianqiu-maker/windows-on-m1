@@ -7167,3 +7167,24 @@ Status: rejected; host-side safety defect found.
 - expected: chainload reconnects as the new commit; Mu sees the stick on the
   guest port; failure: reset again (then photograph the Air framebuffer for the
   last `usb:` line to separate SPMI init from hpm1 power-up).
+
+### EXP-20261106-015 — result
+
+Status: rejected.
+
+- observed: chainload of build 9 (m1n1 2c5761a) again ended in a reset; the
+  reconnected target announced `cb607d1-dirty`; the new host check stopped the
+  run (`chainload: target came back as m1n1 'cb607d1-dirty', expected
+  '2c5761a'`); no hv.log; no framebuffer photo;
+- conclusion: the reset is not specific to hpm0; it happens with the hpm1-only
+  wake too, i.e. in SPMI init or the hpm1 power-up at boot, before USB is up;
+- verdict: rejected.
+
+### EXP-20261106-016 — guest-port wake at hv_init (planned)
+
+- single variable: the SPMI hpm1 wake runs in hv_init (proxy up) instead of at
+  m1n1 boot; m1n1 `d16d88ad18cac2406cd1c4a3ecf33c861b1a3e47`;
+- expected: chainload succeeds (boot path identical to build 7 apart from the
+  added code being unused); `usb: waking guest-port controller hpm1` in hv.log
+  followed by either `... done` and Mu enumerating the stick, or an exception
+  dump that locates the fault.
