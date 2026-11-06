@@ -7188,3 +7188,21 @@ Status: rejected.
   added code being unused); `usb: waking guest-port controller hpm1` in hv.log
   followed by either `... done` and Mu enumerating the stick, or an exception
   dump that locates the fault.
+
+### EXP-20261106-016 — result
+
+Status: rejected (silent reset), location narrowed.
+
+- observed: chainload verified (`running m1n1 d16d88a as expected`); hv.log line
+  31 `usb: waking guest-port controller hpm1 over SPMI`, then the serial link
+  dropped with no exception dump; target reset; log `runs/exp016-hv.log`;
+- conclusion: a machine reset (not an EL2 exception) inside the SPMI wake path
+  (spmi_init, WAKEUP, power-up, or SHUTDOWN to the hpm address);
+- verdict: rejected.
+
+### EXP-20261106-017 — stepwise SPMI wake diagnostic (planned)
+
+- single variable: the hv_init wake runs step by step with flushed logs
+  (`usbdiag 1..8`) and sends no SPMI SHUTDOWN; m1n1 `6734e80d4ccb95038ae7e9b54a22c0279c072e71`;
+- expected: the last `usbdiag N` line before a reset identifies the faulting
+  step, or all 8 steps complete and Mu sees the stick.
