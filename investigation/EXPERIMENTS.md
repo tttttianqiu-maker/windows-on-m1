@@ -7311,3 +7311,28 @@ Status: confirmed (Windows kernel executes on J613), new defect found.
 - single variable: MADT ITS base; m1n1 unchanged (7a7f6ec, build 12 config);
 - expected: no unmapped access at 0xf20000000; kernel proceeds (spinning
   dots, Setup page or a bugcheck with a stop code).
+
+### EXP-20261106-021 — result
+
+Status: confirmed (fix), new hang found.
+
+- observed: no `Unmapped IPA`/`UNHANDLED` lines; Windows Boot Manager read
+  bootaa64.efi, boot.wim, boot.sdi, fonts and bootres.dll from WINBOOT; UEFI
+  ExitBootServices ran (`XhcClearBiosOwnership`, `Capsule Interface Locked`);
+  the kernel issued PSCI CPU_ON for CPU1 (`turning on CPU1 MPIDR: 0x1`,
+  `Secondary 1 published entry=0x100e86ff010`); hv.log then stayed at 1911
+  lines for 5+ minutes; logo static;
+- cause (source): hv_start_secondary() waits forever in smp_wait() for
+  hv_init_secondary() on CPU1, which runs gxf_init() and writes
+  GXF_CONFIG_EL1 unconditionally, unlike the boot CPU (gated by supports_gxf())
+  and unlike upstream (GXF_CONFIG write only with SPRR enabled);
+- verdict: MADT ITS fix confirmed; CPU1 bring-up hang (hypothesis above).
+
+### EXP-20261106-022 — secondaries mirror boot-CPU GXF state (planned)
+
+- single variable: hv_init_secondary() gates gxf_init() on supports_gxf() and
+  the GXF_CONFIG write on SPRR enabled; plus a step marker and a 2 s report
+  (diagnostic); m1n1 `43d600f987ae3ba6305560b2a8078de85a1ffeda`, Mu ae70694;
+- expected: `HV: secondary 1 init done`, `Entering guest secondary 1`, the
+  remaining CPUs come up and the kernel proceeds; failure: the 2 s report
+  shows the step where CPU1 stops.
