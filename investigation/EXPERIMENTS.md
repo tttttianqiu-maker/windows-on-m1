@@ -7231,3 +7231,20 @@ Status: confirmed (SPMI wake works), new defect found and fixed.
   stepwise wake unchanged; m1n1 `7a7f6ece6978d6bb668baf6217fe89d30836fac5`;
 - expected: hv_init continues past the HPM restore walk; Mu enumerates the
   stick on the guest port (USB() mapping in the Shell).
+
+### EXP-20261106-018 — result
+
+Status: confirmed. First USB mass storage in UEFI on J613.
+
+- observed: usbdiag 1..8 as in EXP-017 (hpm1 awake, powerup=0); no panic;
+  Mu: `UsbEnumeratePort: new device connected at port 0`, port reset, high
+  speed (`device is of 2 speed`), `ADDRESSED at 1`, `CONFIGED`,
+  `UsbMassInitMedia`; Shell mapping table shows
+  `FS3: VenHw(...)/USB(0x0,0x0)/HD(1,GPT,...)` (the exFAT WIN11 stick) plus
+  BLK entries for the raw device; internal NVMe mappings unchanged; log
+  `runs/exp018-hv.log` on the host;
+- verdict: CHG-20261106-003 (SPMI hpm1 wake) and CHG-20261106-004
+  (adt_is_compatible) confirmed on hardware; the guest Type-C port works as a
+  USB 2.0 host in Mu;
+- next: input. Candidate EXP-20261106-019: USB hub on the guest port with the
+  stick plus a USB keyboard; expected UsbKbDxe binds and Shell accepts typing.
