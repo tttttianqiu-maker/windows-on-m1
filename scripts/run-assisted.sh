@@ -146,8 +146,24 @@ rm -f assisted-runner.log guest-uart.log guest-uart.tlog guest-uart-reader.log h
 
 if [ "$CHAINLOAD" -eq 1 ]; then
     echo "Chainloading matching m1n1: $M1N1"
-    M1N1DEVICE="$PROXY" "$PYTHON" \
-        "$ROOT/m1n1_windows/proxyclient/tools/chainload.py" "$M1N1"
+    rm -f chainload.log chainload.rc
+    { M1N1DEVICE="$PROXY" "$PYTHON" \
+        "$ROOT/m1n1_windows/proxyclient/tools/chainload.py" "$M1N1" 2>&1
+      echo $? >chainload.rc; } | tee chainload.log
+    [ "$(cat chainload.rc 2>/dev/null)" = 0 ] || { echo "chainload failed" >&2; exit 1; }
+    # The target can reset during the chainload and come back on the ESP m1n1,
+    # which still answers the proxy (EXP-20261106-014). Refuse to continue unless
+    # the m1n1 that reconnected announces the commit recorded in the manifest.
+    WANT=$("$PYTHON" -c 'import json,sys;m=json.load(open(sys.argv[1]));print(m["m1n1_windows_commit"][:7]+("-dirty" if m["m1n1_windows_dirty"] else ""))' \
+        "$(dirname "$M1N1")/MANIFEST.json")
+    GOT=$(tr -d '\r' <chainload.log | sed -n '/Waiting for reconnection/,$s/^TTY> m1n1 \([0-9a-f]*\(-dirty\)\{0,1\}\)$/\1/p' | tail -n 1)
+    if [ "$GOT" != "$WANT" ]; then
+        echo "chainload: target came back as m1n1 '${GOT:-?}', expected '$WANT'." >&2
+        echo "The new m1n1 most likely reset the machine. Photograph the Air screen," >&2
+        echo "cold-boot it, and do not continue with this run." >&2
+        exit 1
+    fi
+    echo "chainload: running m1n1 $GOT as expected"
 fi
 
 READER=

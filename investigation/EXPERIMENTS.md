@@ -7142,3 +7142,28 @@ Status: rejected (no device attach), cause identified in source.
   in Mu, a port-change and USB mass-storage enumeration, and a USB() FS entry in
   the Shell mapping table; failure criteria: proxy link lost after HPM power-up
   (then wake only the guest-port hpm), or no attach with HPMs in S0.
+
+### EXP-20261106-014 — result
+
+Status: rejected; host-side safety defect found.
+
+- observed: chainload of build 8 (m1n1 d39cbcd) printed `Reloading into stub`,
+  then a long `Waiting for reconnection`; the target that reconnected printed
+  `m1n1 cb607d1-dirty` (the build-1 m1n1 on the ESP), i.e. the new m1n1 reset
+  the machine before its USB proxy came up; no `usb:` lines were captured
+  (they go to the framebuffer before USB is up);
+- the runner accepted the old m1n1 (`Proxy is alive again`) and continued; it
+  then hit the EXP-20261105-004 PSCI abort (FAR 0x1, rel 0x259dc), which is not
+  a result of this experiment; log `runs/exp014-hv.log`;
+- leading hypothesis: powering up hpm0, the proxy port's controller, resets
+  the port/machine; not yet distinguished from an SPMI init fault;
+- verdict: rejected as configured.
+
+### EXP-20261106-015 — wake only hpm1 (planned)
+
+- single variable: SPMI wake restricted to hpm1 (guest port); m1n1 `2c5761a44d3187600b42ebaa3bb6ff009e91e4fb`;
+- host safety (not a target variable): run-assisted.sh now refuses to continue
+  unless the reconnected m1n1 announces the manifest's commit;
+- expected: chainload reconnects as the new commit; Mu sees the stick on the
+  guest port; failure: reset again (then photograph the Air framebuffer for the
+  last `usb:` line to separate SPMI init from hpm1 power-up).
