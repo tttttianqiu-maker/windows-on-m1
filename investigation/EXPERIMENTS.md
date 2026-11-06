@@ -7105,3 +7105,27 @@ Status: confirmed. First UEFI Shell on J613.
 - next: EXP-20261106-013, guest USB: a USB mass-storage device on the guest
   Type-C port at boot appears as an FS/BLK mapping. Internal NVMe stays
   read-only: no partitioning or writes until a separate, user-approved plan.
+
+### EXP-20261106-013 — USB stick on the guest Type-C port
+
+Status: rejected (no device attach), cause identified in source.
+
+- setup: Apple multiport adapter removed; data cable on the port that m1n1
+  maps to usb-drd0 (`Removing ADT node /arm-io/usb-drd0`, atc-phy0 removed),
+  PNY dual USB-A/C stick (C end) directly on the other port; same host/target
+  artifacts as EXP-20261106-012;
+- observed: AppleUsbTypeCBringupDxe brought up DWC3_1 at 0xB02280000, XhciDxe
+  started (`2 ports`, DART 32-bit stage-2 view ready), `usb bus started` with
+  the root hub; no port-change, enumeration or mass-storage line followed; Shell
+  mapping table unchanged (no USB() device path);
+- earlier mis-setups: data cable on the drd1 port removes usb-drd1 from the
+  guest ADT and Mu skips DWC3_0 by design (DFU port), so no xHCI at all; a
+  hub/adapter on one port cannot work (that port is device for the proxy);
+- cause (source): m1n1_windows `usb_init()` takes the T8122 path
+  (`/arm-io/nub-spmi-a0/hpm0`) and only runs `usb_phy_bringup()`; the USB-C
+  port controllers (TPS6598x-family HPMs on SPMI) are never woken or powered
+  up, so the guest port never sources VBUS / presents host role; device mode
+  for the proxy works because the host supplies VBUS. Upstream m1n1 wakes the
+  HPMs over SPMI (src/spmi.c, src/tps6598x.c, GPL-2.0-or-later, read only);
+- verdict: guest USB host blocked on T8122 HPM bring-up; needs an SPMI HPM
+  wakeup/power-up in m1n1 before guest entry (licensing decision pending).
