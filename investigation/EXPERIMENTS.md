@@ -7129,3 +7129,16 @@ Status: rejected (no device attach), cause identified in source.
   HPMs over SPMI (src/spmi.c, src/tps6598x.c, GPL-2.0-or-later, read only);
 - verdict: guest USB host blocked on T8122 HPM bring-up; needs an SPMI HPM
   wakeup/power-up in m1n1 before guest entry (licensing decision pending).
+
+### EXP-20261106-014 — wake SPMI USB-C port controllers (planned)
+
+- decision: user approved porting GPL-2.0-or-later upstream code (spmi.c/.h,
+  tps6598x.c/.h from Asahi m1n1 70757dc); m1n1 binaries are now GPL-2.0-or-later
+  (m1n1_windows LICENSING.md);
+- single variable: on T8122 m1n1 powers up every SPMI hpm (S0) and masks its
+  IRQs before PHY bring-up, restores masks before guest entry; m1n1 `d39cbcd50ae772795867f0ad616c04c12c25cebc`;
+- setup: data cable on the usb-drd0 port, PNY stick (C end) on the other;
+- expected: `usb: /arm-io/.../hpmN powered up` lines; proxy link still works;
+  in Mu, a port-change and USB mass-storage enumeration, and a USB() FS entry in
+  the Shell mapping table; failure criteria: proxy link lost after HPM power-up
+  (then wake only the guest-port hpm), or no attach with HPMs in S0.
