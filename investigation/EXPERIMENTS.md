@@ -7206,3 +7206,28 @@ Status: rejected (silent reset), location narrowed.
   (`usbdiag 1..8`) and sends no SPMI SHUTDOWN; m1n1 `6734e80d4ccb95038ae7e9b54a22c0279c072e71`;
 - expected: the last `usbdiag N` line before a reset identifies the faulting
   step, or all 8 steps complete and Mu sees the stick.
+
+### EXP-20261106-017 — result
+
+Status: confirmed (SPMI wake works), new defect found and fixed.
+
+- observed: `usbdiag 1` bus /arm-io/nub-spmi-a0 compatible spmi,gen3, no gen
+  property (regs gen1), hpm1 compatible usbc,sn201202x,spmi, reg byte 0x0a;
+  `usbdiag 2` SPMI base 0x2e4908000; `usbdiag 3` status 0x1000100 (TX and RX
+  FIFO empty); WAKEUP to addr 10 acknowledged; `usbdiag 8 powerup=0`;
+  then `panicked at src/adt.rs:769:10: called Result::unwrap() on an Err
+  value: NotFound` and the target reset; log `runs/exp017-hv.log`;
+- cause: Rust `adt_is_compatible()` panics for nodes without "compatible";
+  `usb_hpm_restore_irqs()` -> `tps6598x_foreach_hpm()` walks all /arm-io
+  children. The same walk ran at boot in EXP-014/015 and at hv_init in EXP-016,
+  so those resets were most likely this panic (not proven: no message captured);
+- fix: m1n1 `7a7f6ece6978d6bb668baf6217fe89d30836fac5`, unwrap_or(false). No regression test: the Rust crate is
+  no_std/cross-compiled with no test harness (gap recorded, not closed);
+- verdict: SPMI hpm1 wake + power-up confirmed on hardware.
+
+### EXP-20261106-018 — HPM walk without the panic (planned)
+
+- single variable: adt_is_compatible() returns false instead of panicking;
+  stepwise wake unchanged; m1n1 `7a7f6ece6978d6bb668baf6217fe89d30836fac5`;
+- expected: hv_init continues past the HPM restore walk; Mu enumerates the
+  stick on the guest port (USB() mapping in the Shell).
