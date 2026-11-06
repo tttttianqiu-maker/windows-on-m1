@@ -7336,3 +7336,26 @@ Status: confirmed (fix), new hang found.
 - expected: `HV: secondary 1 init done`, `Entering guest secondary 1`, the
   remaining CPUs come up and the kernel proceeds; failure: the 2 s report
   shows the step where CPU1 stops.
+
+### EXP-20261106-022 — result
+
+Status: rejected; cause located one step earlier.
+
+- observed: chainload verified (43d600f); after `turning on CPU1`,
+  `HV: Initializing secondary 1` and `Secondary 1 published entry`, hv.log stayed
+  at 1911 lines; the new 2 s `still in hv_init_secondary` report never printed,
+  so the boot CPU never reached that wait;
+- cause (source): hv_start_secondary() first calls mmu_init_secondary() ->
+  smp_call4(), which waits for the target to acknowledge. T8122 cores are not
+  in the MIDR table (`CPU: Unknown`), so fast_ipi is false and smp_send_ipi()
+  writes AIC1-style AIC_IPI_SEND, which AIC3 does not implement; secondaries
+  idle in deep WFI (wfe_mode was still off when they parked) and are never woken;
+- verdict: rejected (GXF gating was not the blocker; the change stays as a
+  consistency fix).
+
+### EXP-20261106-023 — T8122 MIDR entries with fast_ipi (planned)
+
+- single variable: cores 0x42/0x43 listed with features_t8122
+  (features_unknown + fast_ipi), no chicken init; m1n1 `10a0a958fba48415beedfea61a4883633255248c`, Mu ae70694;
+- expected: `CPU: M3 Everest` at boot; `secondary 1 init done`, `Entering guest
+  secondary 1` and the other CPUs; the kernel proceeds past SMP bring-up.
