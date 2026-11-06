@@ -7263,3 +7263,27 @@ Status: confirmed. First USB mass storage in UEFI on J613.
   on the virtual display or a bugcheck (stop code recorded from the viewer);
 - failure criteria: script not found (no `J613:` line), or bootaa64.efi
   returns immediately (error code from the Shell).
+
+### EXP-20261106-019 — result
+
+Status: rejected (media format).
+
+- observed: Shell reached `Shell>` with no `J613:` line; WindowsAutoBootDxe
+  checked 1 filesystem at ReadyToBoot (before USB enumerated) and by design
+  ignores RemovableMedia; Shell mapping: `FS3 ...USB(0x0,0x0)/HD(1,GPT,...)` (the
+  macOS-created EFI partition) and `BLK0 ...USB(0x0,0x0)/HD(2,GPT,...)` (the
+  exFAT WIN11 partition) with no FS mapping;
+- cause (source): Mu packages only FatPkg/EnhancedFatDxe, which has no exFAT
+  support, so the exFAT partition holding the ISO contents and startup.nsh is
+  not readable in UEFI. The same driver is used for J313; the INSTALL.md
+  statement that the J313 Mu build reads exFAT is not supported by the source
+  and is not corrected here (J313 hardware not available);
+- verdict: rejected; the guest USB path itself works (EXP-018).
+
+### EXP-20261106-020 — FAT32 boot partition (planned)
+
+- single variable: stick re-partitioned (GPT): WINBOOT FAT32 3 GB with the ISO
+  contents except sources/install.wim, plus startup.nsh; WINDATA exFAT with
+  sources/install.wim for a later DISM apply; target artifacts unchanged
+  (build 12);
+- expected/failure criteria as EXP-019.
