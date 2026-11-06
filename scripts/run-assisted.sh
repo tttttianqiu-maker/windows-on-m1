@@ -163,6 +163,9 @@ set -- "$FIRMWARE" --device "$PROXY" --display-mode "$DISPLAY" --debug-mode "$DE
 [ "${BOARD:-j313}" = j313 ] || set -- "$@" --layout "$ROOT/config/${BOARD}-guest-layout.json"
 # m1n1 has no T8122 cpufreq table yet; J613 bring-up runs at boot clocks.
 [ "${BOARD:-j313}" != j613 ] || set -- "$@" --allow-unsupported-cpufreq
+# m1n1 does not own GXF on T8122 cores; SPRR on at guest entry makes every
+# later HCR_EL2 write UNDEFINED (EXP-20261105-011).
+[ "${BOARD:-j313}" != j613 ] || set -- "$@" --no-guest-gxf
 [ -z "$RAMDISK" ] || set -- "$@" --ramdisk "$RAMDISK"
 [ -z "$CONTRACT_OUTPUT" ] || set -- "$@" --contract-output "$CONTRACT_OUTPUT"
 [ "$LOW_MEM" -eq 0 ] || set -- "$@" --low-mem

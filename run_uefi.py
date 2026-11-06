@@ -24,6 +24,8 @@ ap = argparse.ArgumentParser()
 ap.add_argument("payload", nargs="?", type=pathlib.Path)
 ap.add_argument("--dry-run", action="store_true",
                 help="validate and print the virtual framebuffer contract without USB")
+ap.add_argument("--no-guest-gxf", action="store_true",
+                help="do not enable SPRR/GXF before guest entry (SoCs whose cores m1n1 does not own GXF on, e.g. J613)")
 ap.add_argument("--allow-unsupported-cpufreq", action="store_true",
                 help="continue at boot clocks when m1n1 has no cpufreq table for this SoC (J613 bring-up)")
 ap.add_argument("--layout", type=pathlib.Path, default=DEFAULT_LAYOUT_PATH,
@@ -144,6 +146,7 @@ else:
     print("CPU frequency preflight: clusters raised to their configured performance states")
 u = ProxyUtils(p, heap_size=768 * 1024 * 1024)
 hv = HV(iface, p, u)
+hv.enable_guest_gxf = not args.no_guest_gxf
 
 # Pin the guest's physical base so the load address stops moving between boots.
 natural = u.heap_top

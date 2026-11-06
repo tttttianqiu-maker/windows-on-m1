@@ -7059,3 +7059,26 @@ Status: confirmed (more Mu DXE progress), defect characterized.
 - expected: whether iBoot left SPRR enabled at the faulting HCR write;
 - failure criterion: the reads themselves trap (then those registers are not
   accessible at EL2 on T8122, also a result).
+
+### EXP-20261105-011 — result
+
+Status: confirmed root cause.
+
+- observed: `aidr=0x16a695797 hw_gxf=1`; HCRDIAG n=1 (hv_init, works)
+  `sprr_cfg=0x0 gxf_cfg=0x0`; n=2..4 (guest trap path) `sprr_cfg=0x1
+  gxf_cfg=0x1 gxf_en=0`; n=4 trapped as before; log `runs/exp011-hv.log`;
+- cause: proxyclient `HV.start()` writes SPRR_CONFIG_EL1=1 and GXF_CONFIG_EL1=1
+  before hv_start. m1n1 has no T8122 MIDR entry, so supports_gxf() is false,
+  gxf_init never ran and hv_write_hcr writes HCR_EL2 directly, which SPRR makes
+  UNDEFINED (EC 0);
+- verdict: confirmed.
+
+### EXP-20261106-012 — guest entry without SPRR/GXF (planned)
+
+- single variable: host does not enable SPRR/GXF before guest entry for
+  BOARD=j613 (`--no-guest-gxf`); target artifacts unchanged from EXP-011
+  (build 7, m1n1 cd3494e, HCR_DIAG on, Mu fbee131);
+- commits: m1n1 `79a601bb4d5cc0a95e247e35bd9d42b28ba5bb3e` (proxyclient only), root below;
+- expected: `Leaving SPRR/GXF disabled for this guest`; HCRDIAG n>=2 show
+  sprr_cfg=0; no EC 0 at hv_write_hcr; Mu continues past HiiDatabase;
+- failure criterion: same trap with sprr_cfg=0 (rejects the root cause).
