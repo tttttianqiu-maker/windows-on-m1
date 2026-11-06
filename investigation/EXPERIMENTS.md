@@ -7248,3 +7248,18 @@ Status: confirmed. First USB mass storage in UEFI on J613.
   USB 2.0 host in Mu;
 - next: input. Candidate EXP-20261106-019: USB hub on the guest port with the
   stick plus a USB keyboard; expected UsbKbDxe binds and Shell accepts typing.
+
+### EXP-20261106-019 — boot Windows Setup from USB without input (planned)
+
+- single variable: `tools/j613/startup.nsh` copied to the root of the WIN11
+  stick; target artifacts unchanged from EXP-018 (build 12, m1n1 7a7f6ec,
+  Mu fbee131);
+- why a script: Mu registers only the Internal UEFI Shell as a boot option; the
+  Shell searches every FS root for startup.nsh;
+- safety: no input device in the guest, so Windows Setup cannot get past its
+  first page; no partitioning or writes; internal NVMe untouched;
+- expected: `J613: Windows installer found on fsN`, bootaa64.efi starts, Windows
+  Boot Manager / winload / kernel output, then either the Setup language page
+  on the virtual display or a bugcheck (stop code recorded from the viewer);
+- failure criteria: script not found (no `J613:` line), or bootaa64.efi
+  returns immediately (error code from the Shell).
