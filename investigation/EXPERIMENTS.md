@@ -7082,3 +7082,26 @@ Status: confirmed root cause.
 - expected: `Leaving SPRR/GXF disabled for this guest`; HCRDIAG n>=2 show
   sprr_cfg=0; no EC 0 at hv_write_hcr; Mu continues past HiiDatabase;
 - failure criterion: same trap with sprr_cfg=0 (rejects the root cause).
+
+### EXP-20261106-012 — result
+
+Status: confirmed. First UEFI Shell on J613.
+
+- observed: `Leaving SPRR/GXF disabled for this guest`; every HCRDIAG after
+  guest entry shows `sprr_cfg=0x0 gxf_cfg=0x0`; n=4 (set VI, 0x324800c2039 ->
+  0x324800c20b9) completed without an exception; Mu DXE and BDS completed,
+  `[Bds]Booting Internal UEFI Shell 2.0`, Shell.efi loaded, `Shell>` prompt on
+  the virtual display (http://127.0.0.1:8766, generation 3);
+- Shell mapping table: FS0 VirtualDisk, FS1/FS2 memory-mapped, plus BLK0-BLK4
+  on `Pci(0x0,0x0)/NVMe(0x1,...)` with `HD(1..5,GPT,...)`: Mu enumerates the
+  internal NVMe namespace and its GPT;
+- last log lines: `Connect ConIn in first ReadKeyStroke in Lazy ConIn mode`,
+  `AbsPtr handle count = 1`; no input device yet (MTP keyboard not wired to
+  Mu; no USB device attached to the guest port);
+- also noted: `GetBootManagerSetting - Error Not Found`, `UpdateFacsHardwareSignature
+  Unable to locate FacsPtr` (non-fatal); log `runs/exp012-hv.log` on the host;
+- verdict: root cause of EXP-20261105-007..011 confirmed; guest SPRR/GXF off is
+  the J613 assisted configuration until m1n1 owns GXF on T8122;
+- next: EXP-20261106-013, guest USB: a USB mass-storage device on the guest
+  Type-C port at boot appears as an FS/BLK mapping. Internal NVMe stays
+  read-only: no partitioning or writes until a separate, user-approved plan.
