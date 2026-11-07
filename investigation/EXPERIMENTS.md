@@ -7649,3 +7649,13 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
 - Recovery: previous build artifacts; the driver can be removed via the
   j613-jobs mailbox (pnputil /delete-driver).
 - Artifact SHA-256: to be recorded at packaging time.
+- Artifact (added before any run): j613-input-30.tar.gz sha256
+  0b4c31ac0706ed904d629abd25e3d3767c59e9a9626b256ea5e7a6cb49530970, built by
+  `BOARD=j613 sh scripts/build-development.sh --display virtual --debug uart`;
+  MANIFEST root 5940414, m1n1 bb3a79e, Mu c0cd337, all clean;
+  m1n1.macho 3241b37047ecec6339d548b97ebd090cb323abe63c86dc2a67fd96a43f8e840a,
+  J613_EFI.fd 8f8bbf14886800ad5ba4cd6c1206257a3e25216951ef591861f1f8f19cf3e727.
+  Compiled DSDT contains Device(AVHD) "APPL0613".
+- Boot-path risk: this build runs the MTP/DockChannel bring-up in hv_start
+  (up to ~3 s). Recovery: re-run the previous ~/Downloads/j613-*.tar.gz.
+- Windows driver: blocked on CI; GitHub Actions shows 0 runs on the fork.
