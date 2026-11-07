@@ -7659,3 +7659,13 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
 - Boot-path risk: this build runs the MTP/DockChannel bring-up in hv_start
   (up to ~3 s). Recovery: re-run the previous ~/Downloads/j613-*.tar.gz.
 - Windows driver: blocked on CI; GitHub Actions shows 0 runs on the fork.
+- Inputs recorded before any run (2026-11-07 ~21:40 UTC):
+  firmware/tpmtfw-j613.bin sha256 e16d15a78d40e9f04f6d9c98986d0763c0b0614de17ef90393d0942b500c6e47
+  (from the Air's Asahi stub ESP vendorfw/firmware.cpio; equals the Asahi manifest entry).
+  Driver: CI run 42415908537 (root f913402) artifact AppleMtpInput-J613-ARM64-Debug:
+  AppleMtpInput.sys 83bc606c5b6de3d832c00c1ecdaa58d856c1c04346a28a58c2dbbe1c7fbf7666,
+  .inf 4e5fafd5d529647befb641250f5410818055ec2cb382d2253edc468c4a655534,
+  .cat 08fc703ff4c1dbe49e5f1f9ec2ff4f3b30819da4f1c8a5936eddf319a8629a03 (WDKTestCert, ARM64).
+- Split checkpoint: part A (m1n1 only, no Windows driver needed) = hv.log dchid lines
+  with build 30 + firmware; part B (Windows driver) needs Windows test signing,
+  which is the owner's decision and is not automated.
