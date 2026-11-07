@@ -7513,3 +7513,20 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
   route-enable and on ticks; at route-enable redoes usb_phy_bringup(1);
 - expected: either a connect (PORTSC CCS=1, irqs>0, stick visible to Setup) or
   register evidence of what changed between Mu and Windows.
+
+### EXP-20261107-031 — result
+
+- run with m1n1 3f464e4: PHY refresh (usb_phy_bringup(1)) at route-enable ran
+  (ret=0) and changed nothing: Setup again "media driver missing", PORTSC
+  0x2a0 for the whole window;
+- USB2 PHY registers: USBCTL=0x102, CTL=0, SIG=0x1d1000f at hv_init (Mu working)
+  -> 0x1c1000f at Windows start (bit 20, read-only, cleared), MISCTUNE=0x8c0813;
+  SIG host bits (7<<12, USB2PHY_SIG_HOST) are clear: the PHY is in device mode
+  as m1n1's own USB1 gadget bring-up left it.
+
+### EXP-20261107-032 — USB2 PHY reset + host mode at Windows xHCI start (planned)
+
+- m1n1 bd94843: at route-enable, power-cycle the USB2 PHY (Linux
+  atcphy_usb2_power_off/on order, cf. upstream "phy: apple: atc: Reset USB2 PHY
+  during probe as well") and set USB2PHY_SIG_HOST; Mu path unchanged;
+- expected: PORTSC CCS=1, forwarded IRQs > 0, Setup finds the stick.
