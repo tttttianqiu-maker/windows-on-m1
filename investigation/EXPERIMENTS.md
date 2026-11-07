@@ -7685,3 +7685,15 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
   8b04f50c68e3cdd76f8ab0ec68d719abf022e742081f23ff834f4036c42f83a6.
 - checkpoint: "hv_mtp: MTP running" and "dchid: bring-up done"; failure: RTKit
   boot failed again (then the rtkit lines decide the next step).
+- Result EXP-20261107-041 (build 31): "SRAM window 0x2fac00000 + 0x100000",
+  then "rtkit(mtp): did not receive HELLO", "RTKit boot failed". Verdict: SRAM
+  fix in place but not sufficient; the coprocessor never starts. Hypothesis:
+  the MTP power domain is off (hv_mtp never enabled it).
+
+### EXP-20261107-042 — power the MTP domain first (planned)
+
+- single variable: pmgr_adt_power_enable("/arm-io/mtp") before asc_init
+  (m1n1 70d46d8, root 1ea238e, clean); artifact j613-mtppower-32.tar.gz sha256
+  e615c5c0a63b2401773ba9efd3e3db1d29b4833088838a49c326656e7ce0a66c.
+- checkpoint: "hv_mtp: power domain enable ok" then "MTP running"; failure:
+  power enable FAILED or still no HELLO.
