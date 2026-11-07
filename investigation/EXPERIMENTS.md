@@ -7557,3 +7557,18 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
   GUSB3PIPECTL/GUSB2PHYCFG.PHYSOFTRST (100 ms each, as Mu), GCTL host mode,
   USB2 PHY host bits; logs `HV: DWC3 replay #n`;
 - expected: PORTSC connect under Windows.
+
+### EXP-20261107-034 — result
+
+- m1n1 ea4a7c9: replay #1 ran before Mu's HCRST and Mu still enumerated the
+  stick (bootmgr loaded from it); replay #2 ran before Windows' HCRST with the
+  same register state (GCTL 0x30c11004, GUSB2PHYCFG 0x102400, SIG 0x1c1700f);
+  Windows still sees PORTSC 0x2a0 and irqs=0. Visible DWC3/PHY state is the
+  same in the working (Mu) and failing (Windows) case, so the difference is
+  in what the guest driver does after the reset.
+
+### EXP-20261107-035 — guest USBCMD/CONFIG/PORTSC write trace (planned)
+
+- m1n1 b8d9ea8: logs each guest write to USBCMD, CONFIG, PORTSC1/2 with the
+  port state right after (40 firmware, 100 OS entries);
+- expected: shows the Windows port sequence that loses the connect.
