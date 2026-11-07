@@ -7,12 +7,14 @@ set STICK=%1
 set LOG=X:\j613-install.log
 echo J613 install %date% %time% stick=%STICK% > %LOG%
 
+echo J613 STEP 1 find install.wim& echo J613 STEP 1 find install.wim >> %LOG%
 rem --- install.wim may sit on the stick's second partition (WINDATA)
 set WIM=
 for %%d in (C D E F G H I J K L M N O P Q R T U V Y Z) do if exist %%d:\sources\install.wim set WIM=%%d:\sources\install.wim
 if "%WIM%"=="" (echo no install.wim found >> %LOG% & goto fail)
 echo wim=%WIM% >> %LOG%
 
+echo J613 STEP 2 look for existing volumes& echo J613 STEP 2 look for existing volumes >> %LOG%
 rem --- resume: partitions from an earlier run (labels WINESP + Windows) are reused.
 rem     WinPE gives an EFI partition no drive letter, so assign S: / W: via diskpart.
 echo list volume > X:\lv.txt
@@ -38,6 +40,7 @@ if defined VESP if defined VWIN (
   goto haveparts
 )
 
+echo J613 STEP 3 find free disk space& echo J613 STEP 3 find free disk space >> %LOG%
 rem --- find the one disk with >= 100 GB free
 echo list disk > X:\ld.txt
 diskpart /s X:\ld.txt > X:\disks.txt
@@ -50,6 +53,7 @@ for /f "tokens=2,6,7" %%a in ('type X:\disks.txt ^| find "Online"') do (
 if not "%COUNT%"=="1" (echo expected exactly one disk with ^>=100 GB free, found %COUNT% >> %LOG% & goto fail)
 echo target disk %DISK% >> %LOG%
 
+echo J613 STEP 4 create partitions& echo J613 STEP 4 create partitions >> %LOG%
 rem --- partitions inside the free extent only (no clean, no delete, no format of existing)
 (
 echo select disk %DISK%
@@ -71,6 +75,7 @@ set ESP=S:
 if not exist %TGT%\ (echo %TGT% missing >> %LOG% & goto fail)
 if not exist %ESP%\ (echo %ESP% missing >> %LOG% & goto fail)
 if exist %TGT%\Windows\System32\winload.efi (echo Windows is already installed on %TGT%, nothing to do. Remove the stick. >> %LOG% & goto fail)
+echo J613 STEP 5 check target size& echo J613 STEP 5 check target size >> %LOG%
 rem an empty root makes dir print only "File Not Found", so give it one file
 echo j613> %TGT%\j613.tmp
 set FREE=0
@@ -80,17 +85,20 @@ set FREEGB=%FREE:~0,-9%
 if "%FREEGB%"=="" set FREEGB=0
 if %FREEGB% LSS 90 (echo %TGT% is under 90 GB, wrong volume? >> %LOG% & goto fail)
 
+echo J613 STEP 6 apply Windows 11 Pro (10-20 min)& echo J613 STEP 6 apply Windows 11 Pro (10-20 min) >> %LOG%
 rem --- Windows 11 Pro
 dism /Apply-Image /ImageFile:%WIM% /Name:"Windows 11 Pro" /ApplyDir:%TGT%\ >> %LOG% 2>&1
 if errorlevel 1 (echo dism by name failed, trying index 6 >> %LOG% & dism /Apply-Image /ImageFile:%WIM% /Index:6 /ApplyDir:%TGT%\ >> %LOG% 2>&1)
 if not exist %TGT%\Windows\System32\winload.efi (echo apply failed >> %LOG% & goto fail)
 
+echo J613 STEP 7 boot files& echo J613 STEP 7 boot files >> %LOG%
 rem --- boot files
 bcdboot %TGT%\Windows /s %ESP% /f UEFI /v >> %LOG% 2>&1
 mkdir %ESP%\EFI\BOOT
 copy /y %ESP%\EFI\Microsoft\Boot\bootmgfw.efi %ESP%\EFI\BOOT\BOOTAA64.EFI >> %LOG%
 if not exist %ESP%\EFI\Microsoft\Boot\BCD (echo BCD missing >> %LOG% & goto fail)
 
+echo J613 STEP 8 first-boot answer file& echo J613 STEP 8 first-boot answer file >> %LOG%
 rem --- click-free first boot
 mkdir %TGT%\Windows\Panther
 copy /y %STICK%\oobe-unattend.xml %TGT%\Windows\Panther\unattend.xml >> %LOG%
