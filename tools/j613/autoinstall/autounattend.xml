@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  J613 hands-free install. Windows Setup reads this from the root of the install stick.
+  The windowsPE pass does NOT let Setup touch any disk: it runs j613-install.cmd from the
+  stick, which only creates partitions inside the single >=100 GB unallocated extent
+  (the space Asahi's installer left for Windows), applies Windows 11 Pro there, writes the
+  boot files, copies oobe-unattend.xml for a click-free first boot, and reboots.
+  macOS / Asahi partitions are never selected, formatted or deleted.
+-->
+<unattend xmlns="urn:schemas-microsoft-com:unattend" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
+  <settings pass="windowsPE">
+    <component name="Microsoft-Windows-International-Core-WinPE" processorArchitecture="arm64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+      <SetupUILanguage><UILanguage>en-US</UILanguage></SetupUILanguage>
+      <InputLocale>0407:00000407</InputLocale>
+      <SystemLocale>de-DE</SystemLocale>
+      <UILanguage>en-US</UILanguage>
+      <UserLocale>de-DE</UserLocale>
+    </component>
+    <component name="Microsoft-Windows-Setup" processorArchitecture="arm64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+      <RunSynchronous>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>1</Order>
+          <Description>J613 scripted install into the free extent only</Description>
+          <Path>cmd /c "for %d in (C D E F G H I J K L M N O P Q R T U V Y Z) do @if exist %d:\j613-install.cmd (call %d:\j613-install.cmd %d: &amp; exit)"</Path>
+        </RunSynchronousCommand>
+      </RunSynchronous>
+      <UserData><AcceptEula>true</AcceptEula></UserData>
+    </component>
+  </settings>
+</unattend>
