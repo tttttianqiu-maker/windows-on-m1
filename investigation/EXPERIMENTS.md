@@ -7462,3 +7462,15 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
   first-match MPIDR lookup and the CPU_ON ALREADY_ON guard.
 - next: input (no keyboard/mouse in the guest yet); install target needs the
   user's approval (the emulated NVMe is the Air's whole internal SSD).
+
+### EXP-20261107-029 — Windows guest-port USB diagnostic (planned)
+
+- observation in EXP-028: Setup showed "media driver missing"; a hub with
+  keyboard and mouse hot-plugged on the guest port gave no cursor and no
+  Shift+F10; hv.log showed no xHCI activity after `IRQ route enabled
+  vINTID=857 AIC=1030` (USBCMD=0 USBSTS=1 at that moment);
+- change: m1n1 `4de734cd13abb4f7be0544e23a1a9b02b0d3acb8` logs xHCI state, PORTSC and the forwarded AIC 1030 count
+  every ~4 s for ~5 min (diagnostic only); Mu 74110ab;
+- user action: boot with the hub (stick + keyboard + mouse) on the guest port;
+- expected: tells whether USBXHCI starts the controller (USBCMD.RS), whether
+  ports see the hub, and whether interrupts reach the guest.
