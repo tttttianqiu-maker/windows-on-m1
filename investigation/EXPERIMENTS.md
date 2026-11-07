@@ -7493,3 +7493,23 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
 - user action: at Setup, replug the stick once;
 - expected: shows whether VBUS/data role or the USB2 PHY is lost after
   ExitBootServices, and whether a replug produces a port change.
+
+### EXP-20261107-030 — result
+
+- run 20261107-185809 (m1n1 f195373), stick direct, replug ~30 s into Setup;
+- xHCI running, irqs=0, PORTSC P1=0x2a0 P2=0xe0002a0 for every sample, also
+  after the replug;
+- DWC3: GCTL=0x30c11004 (PRTCAPDIR host), GSTS=0x7e800001 (CURMOD host),
+  GUSB2PHYCFG=0x102400 (no SUSPHY, no PHYSOFTRST), GUSB3PIPECTL=0x1021102;
+- hpm1: mode APP, STATUS 0x100248fd (plug present, conn state 6, source, DFP,
+  VCONN, PP_HV output), one sample 0x100240fd during the replug, then back;
+- conclusion: Type-C side and DWC3 mode are fine; the USB2 line never reports a
+  connect, pointing at the port's PHY (configured by m1n1's USB1 bring-up at
+  boot) being lost after Mu stops using the port.
+
+### EXP-20261107-031 — PHY dump + refresh at Windows xHCI start (planned)
+
+- m1n1 3f464e4: prints ATC PHY/pipehandler registers at hv_init, at
+  route-enable and on ticks; at route-enable redoes usb_phy_bringup(1);
+- expected: either a connect (PORTSC CCS=1, irqs>0, stick visible to Setup) or
+  register evidence of what changed between Mu and Windows.
