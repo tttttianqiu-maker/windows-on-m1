@@ -7530,3 +7530,16 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
   atcphy_usb2_power_off/on order, cf. upstream "phy: apple: atc: Reset USB2 PHY
   during probe as well") and set USB2PHY_SIG_HOST; Mu path unchanged;
 - expected: PORTSC CCS=1, forwarded IRQs > 0, Setup finds the stick.
+
+### EXP-20261107-032 — result
+
+- run 20261107-191340 (m1n1 bd94843): all 8 cores up, then the USB proxy link
+  vanished (Errno 6) with no exception printed, about where Windows enables the
+  xHCI interrupt; no `phy1 before-refresh` line reached the host (async USB
+  output lost at reset). Treated as: the USB2 PHY power cycle resets the Air.
+
+### EXP-20261107-033 — host bits only (planned)
+
+- m1n1 13e4657: at route-enable only set USB2PHY_SIG_HOST (no power cycle),
+  console flushed around it;
+- expected: no reset; PORTSC connect if device mode was the blocker.
