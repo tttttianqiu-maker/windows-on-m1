@@ -7543,3 +7543,17 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
 - m1n1 13e4657: at route-enable only set USB2PHY_SIG_HOST (no power cycle),
   console flushed around it;
 - expected: no reset; PORTSC connect if device mode was the blocker.
+
+### EXP-20261107-033 — result
+
+- m1n1 13e4657: no reset; USB2PHY_SIG went 0x1c1000f -> 0x1c1700f (host bits);
+  PORTSC still 0x2a0, irqs=0; Setup still "media driver missing";
+- user test: a phone plugged into the guest port while Setup ran **charges**,
+  so VBUS/power role are fine; the fault is on the data path.
+
+### EXP-20261107-034 — replay Mu's DWC3 soft reset before guest HCRST (planned)
+
+- m1n1 ea4a7c9: on every guest USBCMD.HCRST write, first GCTL.CORESOFTRESET +
+  GUSB3PIPECTL/GUSB2PHYCFG.PHYSOFTRST (100 ms each, as Mu), GCTL host mode,
+  USB2 PHY host bits; logs `HV: DWC3 replay #n`;
+- expected: PORTSC connect under Windows.
