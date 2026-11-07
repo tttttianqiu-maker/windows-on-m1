@@ -21,8 +21,12 @@ echo list volume > X:\lv.txt
 diskpart /s X:\lv.txt > X:\vols.txt
 set VESP=
 set VWIN=
-for /f "tokens=2" %%v in ('type X:\vols.txt ^| find " WINESP "') do set VESP=%%v
-for /f "tokens=2" %%v in ('type X:\vols.txt ^| find " Windows " ^| find "NTFS"') do set VWIN=%%v
+rem (no find/findstr: Setup's WinPE may not have them; cmd built-ins only)
+for /f "usebackq tokens=*" %%L in (`type X:\vols.txt`) do (
+  set "LINE=%%L"
+  if not "!LINE:WINESP=!"=="!LINE!" for /f "tokens=2" %%n in ("!LINE!") do set VESP=%%n
+  if not "!LINE: Windows =!"=="!LINE!" if not "!LINE:NTFS=!"=="!LINE!" for /f "tokens=2" %%n in ("!LINE!") do set VWIN=%%n
+)
 if defined VESP if defined VWIN (
   type X:\vols.txt >> %LOG%
   echo resuming on existing volumes ESP=%VESP% Windows=%VWIN% >> %LOG%
@@ -47,8 +51,8 @@ diskpart /s X:\ld.txt > X:\disks.txt
 type X:\disks.txt >> %LOG%
 set DISK=
 set COUNT=0
-for /f "tokens=2,6,7" %%a in ('type X:\disks.txt ^| find "Online"') do (
-  if "%%c"=="GB" if %%b GEQ 100 (set DISK=%%a& set /a COUNT+=1)
+for /f "usebackq tokens=1,2,3,4,5,6,7" %%a in (`type X:\disks.txt`) do (
+  if "%%a"=="Disk" if "%%c"=="Online" if "%%g"=="GB" if %%f GEQ 100 (set DISK=%%b& set /a COUNT+=1)
 )
 if not "%COUNT%"=="1" (echo expected exactly one disk with ^>=100 GB free, found %COUNT% >> %LOG% & goto fail)
 echo target disk %DISK% >> %LOG%
@@ -79,7 +83,7 @@ echo J613 STEP 5 check target size& echo J613 STEP 5 check target size >> %LOG%
 rem an empty root makes dir print only "File Not Found", so give it one file
 echo j613> %TGT%\j613.tmp
 set FREE=0
-for /f "tokens=3" %%f in ('dir /-c %TGT%\ ^| find "bytes free"') do set FREE=%%f
+for /f "usebackq tokens=1,2,3,4,5" %%a in (`dir /-c %TGT%\`) do if "%%e"=="free" set FREE=%%c
 echo %TGT% free bytes %FREE% >> %LOG%
 set FREEGB=%FREE:~0,-9%
 if "%FREEGB%"=="" set FREEGB=0
