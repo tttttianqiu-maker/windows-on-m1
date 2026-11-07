@@ -7359,3 +7359,23 @@ Status: rejected; cause located one step earlier.
   (features_unknown + fast_ipi), no chicken init; m1n1 `10a0a958fba48415beedfea61a4883633255248c`, Mu ae70694;
 - expected: `CPU: M3 Everest` at boot; `secondary 1 init done`, `Entering guest
   secondary 1` and the other CPUs; the kernel proceeds past SMP bring-up.
+
+### EXP-20261106-023 — not run
+
+Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted).
+
+### EXP-20261107-024 — bundled M3 CPU setup (planned)
+
+- deviation: the user asked for fewer hardware rounds, so this build bundles
+  several upstream-validated M3 changes instead of one variable; if it fails,
+  bisect by reverting the bundle pieces in the order listed;
+- changes (m1n1 `f95d97dbf9e5adffea8355fcb4dcdc8a553ea101`): fast_ipi (from EXP-023); T8122 chicken bits; features
+  per upstream features_m3 minus mmu_sprr; counter redirect copied to guest
+  CPUs with CNTHCTL_EL2 written after it; host: scripts/j613-run.sh (one-command
+  run with automatic summary and framebuffer PNG), tools/fb2png.py;
+- ACPI audit: every J613 ACPI MMIO address lies in an HV-mapped range or the
+  vGIC hooks (only GTDT 0xFFFFFFFFFFFF placeholders outside);
+- expected: `CPU: M3 Everest`/`M3 Sawtooth`, `HV: counter redirect ...`, all
+  secondaries `init done` and `Entering guest secondary`, Windows proceeds
+  past SMP; failure criteria: chainload reset (bundle breaks early boot ->
+  drop chicken bits first), secondary step report, or a bugcheck.
