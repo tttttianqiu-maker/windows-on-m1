@@ -7626,3 +7626,26 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
 - specialize ("Starting services") and OOBE ran unattended (oobe-unattend.xml);
 - 21:14 user report: Windows 11 runs (desktop reached). Input still absent
   (guest-port USB attach not detected under Windows, EXP-029..037).
+
+## EXP-20261107-040 — J613 built-in keyboard/trackpad via m1n1 AVHD (planned)
+
+- UTC: 2026-11-07 (pre-run entry; to be completed after the run)
+- Hypothesis: with m1n1 owning MTP/DockChannel and AppleMtpInput bound to
+  ACPI\APPL0613, the built-in keyboard and trackpad work in Windows.
+- Single variable: m1n1 hv_dchid + Mu AVHD + AppleMtpInput (input only; USB,
+  display and boot path unchanged).
+- Commits: root c66ae7e, m1n1 bb3a79e (includes b1c51f6), Mu c0cd337.
+- Prerequisite: firmware/tpmtfw-j613.bin (asahi-fwextract HIDF container);
+  without it the keyboard alone is expected to work.
+- Build/launch: rebuild Mu + m1n1, run_uefi.py --mtp-firmware firmware/tpmtfw-j613.bin;
+  AppleMtpInput.inf/.sys from CI artifact AppleMtpInput-J613-ARM64-Debug via
+  WINSRC \j613-jobs\drivers (test-signed; testsigning on).
+- Checkpoints (hv.log): "hv_mtp: MTP running", "dchid: interface",
+  "dchid: bring-up done", "dchid: AVHD device at 0x5300000000, GSIV 65".
+  Windows: APPL0613 device started, keyboard typing, PTP touchpad in Settings.
+- Failure criteria: no "MTP running" (m1n1 MTP boot), AVHD STATUS 0
+  (DockChannel), device Code 10 (driver), keys rejected (AppleInputDiag
+  KeyboardReportRejectedCount).
+- Recovery: previous build artifacts; the driver can be removed via the
+  j613-jobs mailbox (pnputil /delete-driver).
+- Artifact SHA-256: to be recorded at packaging time.
