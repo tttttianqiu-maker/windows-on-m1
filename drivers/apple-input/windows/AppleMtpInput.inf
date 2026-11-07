@@ -1,0 +1,63 @@
+[Version]
+Signature="$WINDOWS NT$"
+Class=HIDClass
+ClassGuid={745A17A0-74D3-11D0-B6FE-00A0C90F57DA}
+Provider=%ProviderName%
+DriverVer=11/07/2026,0.2.0.0
+CatalogFile=AppleMtpInput.cat
+PnpLockdown=1
+
+[DestinationDirs]
+DefaultDestDir = 13
+
+[Manufacturer]
+%ProviderName%=AppleMtpInputModels,NTarm64.10.0...22000
+
+[AppleMtpInputModels.NTarm64.10.0...22000]
+%AppleMtpInput.DeviceDesc%=AppleMtpInput_Install,ACPI\APPL0613
+
+[AppleMtpInput_Install.NT]
+CopyFiles=AppleMtpInput_CopyFiles
+
+[AppleMtpInput_CopyFiles]
+AppleMtpInput.sys
+
+[AppleMtpInput_Install.NT.HW]
+AddReg=AppleMtpInput_Hardware
+
+[AppleMtpInput_Hardware]
+HKR,,LowerFilters,0x00010000,"Vhf"
+
+[AppleMtpInput_Install.NT.Services]
+AddService=AppleMtpInput,0x00000002,AppleMtpInput_Service
+
+[AppleMtpInput_Service]
+DisplayName=%AppleMtpInput.ServiceDesc%
+ServiceType=1
+StartType=3
+ErrorControl=1
+ServiceBinary=%13%\AppleMtpInput.sys
+AddReg=AppleMtpInput_ServiceParameters
+
+[AppleMtpInput_ServiceParameters]
+HKR,Parameters,TransportOnly,0x00010001,0
+HKR,Parameters,PublishKeyboard,0x00010001,1
+HKR,Parameters,PublishTrackpad,0x00010001,1
+
+[AppleMtpInput_Install.NT.Wdf]
+KmdfService=AppleMtpInput,AppleMtpInput_Wdf
+
+[AppleMtpInput_Wdf]
+KmdfLibraryVersion=1.33
+
+[SourceDisksFiles]
+AppleMtpInput.sys=1
+
+[SourceDisksNames]
+1=%DiskName%,,,
+
+[Strings]
+ProviderName="Windows on M1 Project"
+DiskName="Apple MTP Input Driver"
+AppleMtpInput.DeviceDesc="Apple J613 Built-in Keyboard and Trackpad"
+AppleMtpInput.ServiceDesc="Apple J613 MTP HID Transport (m1n1 AVHD)"

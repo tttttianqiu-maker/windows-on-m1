@@ -64,6 +64,10 @@ ap.add_argument("--no-pin", action="store_true",
 ap.add_argument("--wdt-cpu", type=int, choices=range(8), default=None,
                 help="reserve one physical CPU for the hypervisor watchdog (0..7). Omit this "
                      "for an eight-core guest; a reserved CPU must not also be enabled in MADT.")
+ap.add_argument("--mtp-firmware", type=pathlib.Path,
+                default=os.environ.get("J613_MTP_FIRMWARE"),
+                help="J613 trackpad firmware (asahi 'tpmtfw-j613.bin', HIDF container); "
+                     "default: firmware/tpmtfw-j613.bin next to this script if present")
 ap.add_argument("--contract-output", type=pathlib.Path,
                 help="write four CRC-framed launch-contract checkpoints")
 args = ap.parse_args()
@@ -383,6 +387,20 @@ def configure_display_consumers():
     capture_contract(3, 4)
 
 hv.pre_guest_start = configure_display_consumers
+
+# J613 built-in trackpad: hand the multi-touch firmware to the hypervisor, which
+# uploads it to the MTP during hv_start() (keyboard works without it).
+mtp_fw = args.mtp_firmware or (pathlib.Path(__file__).resolve().parent / "firmware" / "tpmtfw-j613.bin")
+if mtp_fw and pathlib.Path(mtp_fw).is_file():
+    blob = pathlib.Path(mtp_fw).read_bytes()
+    fw_addr = p.malloc(len(blob))
+    iface.writemem(fw_addr, blob)
+    if hasattr(p, "hv_mtp_firmware") and p.hv_mtp_firmware(fw_addr, len(blob)):
+        print(f"J613 trackpad firmware staged: {mtp_fw} ({len(blob)} bytes)")
+    else:
+        print("WARNING: m1n1 did not accept the trackpad firmware")
+elif args.mtp_firmware:
+    raise SystemExit(f"--mtp-firmware {args.mtp_firmware} not found")
 
 print("Starting guest...")
 hv.start()

@@ -74,6 +74,61 @@ jobs:
             drivers/apple-input/windows/tools/AppleInputDiag/ARM64/Debug/**/*.exe
             drivers/apple-input/windows/tools/AppleInputDiag/ARM64/Debug/**/*.pdb
 
+  build-j613-mtp-arm64:
+    runs-on: windows-2025-vs2026
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+        with:
+          msbuild-architecture: x64
+
+      - name: Add NuGet to PATH
+        uses: NuGet/setup-nuget@v2
+
+      - name: Restore official SDK and WDK packages
+        run: nuget restore packages.config -PackagesDirectory packages
+
+      - name: Expose WDK host tools
+        shell: pwsh
+        run: |
+          $stampInf = Get-ChildItem packages -Recurse -Filter stampinf.exe |
+            Where-Object { $_.FullName -match '[\\/]x64[\\/]' } |
+            Select-Object -First 1
+          if (!$stampInf) { throw "stampinf.exe was not found in the restored WDK" }
+          $stampInf.Directory.FullName | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+
+      - name: Build AppleMtpInput (J613 MacBook Air M3) for ARM64
+        run: >-
+          msbuild drivers\apple-input\windows\AppleMtpInput.vcxproj
+          /m
+          /t:Clean,Build
+          /p:Configuration=Debug
+          /p:Platform=ARM64
+          /p:RunCodeAnalysis=true
+
+      - name: Build AppleInputDiag for ARM64
+        run: >-
+          msbuild drivers\apple-input\windows\tools\AppleInputDiag\AppleInputDiag.vcxproj
+          /m
+          /t:Clean,Build
+          /p:Configuration=Debug
+          /p:Platform=ARM64
+
+      - name: Upload unsigned J613 test package
+        uses: actions/upload-artifact@v4
+        with:
+          name: AppleMtpInput-J613-ARM64-Debug
+          if-no-files-found: error
+          path: |
+            drivers/apple-input/windows/ARM64/Debug/**/AppleMtpInput.sys
+            drivers/apple-input/windows/ARM64/Debug/**/AppleMtpInput.inf
+            drivers/apple-input/windows/ARM64/Debug/**/AppleMtpInput.cat
+            drivers/apple-input/windows/ARM64/Debug/**/AppleMtpInput.pdb
+            drivers/apple-input/windows/tools/AppleInputDiag/ARM64/Debug/**/*.exe
+
   build-trackpad-capture-arm64:
     if: github.event_name == 'workflow_dispatch'
     runs-on: windows-2025-vs2026

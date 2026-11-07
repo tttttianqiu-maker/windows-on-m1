@@ -51,6 +51,7 @@ typedef struct _AI_DEVICE_CONTEXT {
     PUCHAR SpiRegisters;
     PUCHAR ApGpioRegisters;
     PUCHAR NubGpioRegisters;
+    PUCHAR AvhdRegisters;     /* J613: m1n1 AVHD page (transport_avhd.c) */
     WDFINTERRUPT Interrupt;
     WDFTIMER TrackpadInitTimer;
     WDFQUEUE DiagnosticQueue;
@@ -137,6 +138,10 @@ NTSTATUS AiTrackpadVhfStart(PAI_DEVICE_CONTEXT Context);
 NTSTATUS AiTrackpadVhfSubmit(PAI_DEVICE_CONTEXT Context,
                              const UCHAR *Report, SIZE_T Length);
 VOID AiTrackpadVhfStop(PAI_DEVICE_CONTEXT Context);
+ULONGLONG AiNowMicroseconds(VOID);
+NTSTATUS AiTrackpadPipelineProcess(PAI_DEVICE_CONTEXT Context,
+                                   const UCHAR *Payload, SIZE_T Length);
+VOID AiTrackpadRecordAxisDiagnostics(PAI_DEVICE_CONTEXT Context);
 NTSTATUS AiVhfFrontendStart(PAI_DEVICE_CONTEXT Context);
 NTSTATUS AiVhfFrontendSubmitKeyboard(PAI_DEVICE_CONTEXT Context,
                                      const UCHAR *Report, SIZE_T Length);
