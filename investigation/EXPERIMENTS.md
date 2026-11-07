@@ -7588,3 +7588,18 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
 - m1n1 0b3973a: a guest RS write while HCH=1 waits (<= 1.5 s) for PORTSC1/2
   CCS before reaching hardware; logs `HV: xHCI Run/Stop held N ms`;
 - expected: Windows sees the stick (Setup gets past "media driver missing").
+
+### EXP-20261107-036 — result
+
+- run 20261107-193550 (m1n1 0b3973a): Mu's RS held 0 ms (already connected);
+  Windows' RS held the full 1500 ms with PORTSC1 0x2a0 while halted -> not a
+  Run/Stop timing problem;
+- in Mu the connect appeared right after `dart-usb1` bring-up (dart_init_adt
+  x2 + stage-2 view, triggered by Mu's first DMA pointer write) between
+  CONFIG and the next USBCMD write; the OS never triggers that path.
+
+### EXP-20261107-037 — DART re-bring-up for the OS + full OS write trace (planned)
+
+- m1n1 6a77e9f: at the OS's HCRST (replay #2) redo hv_prepare_j313_xhci_darts()
+  and log PORTSC after it; log every non-doorbell/non-ERDP guest write in the
+  OS phase (80 entries).
