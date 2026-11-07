@@ -136,5 +136,5 @@ cp guest-uart.log "$RUN/" 2>/dev/null
 cat "$RUN/summary.txt"
 pbcopy < "$RUN/summary.txt" 2>/dev/null && say "summary copied to the clipboard: paste it into the chat"
 say "files: $RUN (summary.txt, screen.png, hv-tail.log)"
-[ -f "$RUN/screen.png" ] && open "$RUN/screen.png" 2>/dev/null
+[ -z "${J613_NO_OPEN:-}" ] && [ -f "$RUN/screen.png" ] && open "$RUN/screen.png" 2>/dev/null
 exit 0
