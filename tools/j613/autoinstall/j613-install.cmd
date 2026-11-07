@@ -78,7 +78,7 @@ set ESP=S:
 :haveparts
 if not exist %TGT%\ (echo %TGT% missing >> %LOG% & goto fail)
 if not exist %ESP%\ (echo %ESP% missing >> %LOG% & goto fail)
-if exist %TGT%\Windows\System32\winload.efi (echo Windows is already installed on %TGT%, nothing to do. Remove the stick. >> %LOG% & goto fail)
+if exist %TGT%\Windows\System32\winload.efi goto postcfg
 echo J613 STEP 5 check target size& echo J613 STEP 5 check target size >> %LOG%
 rem an empty root makes dir print only "File Not Found", so give it one file
 echo j613> %TGT%\j613.tmp
@@ -114,7 +114,47 @@ copy /y %LOG% %ESP%\ >nul
 wpeutil reboot
 exit /b 0
 
+rem ===== installed Windows found: offline settings for a machine without input =====
+:postcfg
+echo J613 STEP P1 offline settings: no sleep, hibernate, screen off, disk idle, lock screen& echo J613 STEP P1 offline settings >> %LOG%
+reg load HKLM\J613SYS %TGT%\Windows\System32\config\SYSTEM >> %LOG% 2>&1
+if errorlevel 1 (echo reg load SYSTEM failed >> %LOG% & goto fail)
+reg load HKLM\J613SW %TGT%\Windows\System32\config\SOFTWARE >> %LOG% 2>&1
+if errorlevel 1 (reg unload HKLM\J613SYS >nul 2>&1 & echo reg load SOFTWARE failed >> %LOG% & goto fail)
+set PW=HKLM\J613SYS\ControlSet001\Control\Power
+reg add %PW% /v HibernateEnabled /t REG_DWORD /d 0 /f >> %LOG% 2>&1
+reg add %PW% /v HibernateEnabledDefault /t REG_DWORD /d 0 /f >> %LOG% 2>&1
+reg add %PW% /v PlatformAoAcOverride /t REG_DWORD /d 0 /f >> %LOG% 2>&1
+reg add %PW%\User\PowerSchemes /v ActivePowerScheme /t REG_SZ /d 381b4222-f694-41f0-9685-ff5bb260df2e /f >> %LOG% 2>&1
+rem display off, console-lock display off, sleep after, hibernate after, disk off: all 0 = never
+for %%k in (7516b95f-f776-4464-8c53-06167f40cc99\3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e 7516b95f-f776-4464-8c53-06167f40cc99\8ec4b3a5-6868-48c2-be75-4f3044be88a7 238c9fa8-0aad-41ed-83f4-97be242c8f20\29f6c1db-86da-48c5-9fdb-f2b67b1f44da 238c9fa8-0aad-41ed-83f4-97be242c8f20\9d7815a6-7ee4-497e-8888-515a05f02364 0012ee47-9041-4b5d-9b77-535fba8b1442\6738e2c4-e8a5-4a42-b16a-e040e769756e) do (
+  reg add "%PW%\User\PowerSchemes\381b4222-f694-41f0-9685-ff5bb260df2e\%%k" /v ACSettingIndex /t REG_DWORD /d 0 /f >> %LOG% 2>&1
+  reg add "%PW%\User\PowerSchemes\381b4222-f694-41f0-9685-ff5bb260df2e\%%k" /v DCSettingIndex /t REG_DWORD /d 0 /f >> %LOG% 2>&1
+)
+reg add HKLM\J613SW\Policies\Microsoft\Windows\Personalization /v NoLockScreen /t REG_DWORD /d 1 /f >> %LOG% 2>&1
+reg add HKLM\J613SW\Microsoft\Windows\CurrentVersion\Run /v J613Power /t REG_SZ /d "cmd /c powercfg /change monitor-timeout-ac 0 & powercfg /change monitor-timeout-dc 0 & powercfg /change standby-timeout-ac 0 & powercfg /change standby-timeout-dc 0 & powercfg /change disk-timeout-ac 0 & powercfg /change disk-timeout-dc 0 & powercfg /h off" /f >> %LOG% 2>&1
+reg query "%PW%\User\PowerSchemes\381b4222-f694-41f0-9685-ff5bb260df2e\238c9fa8-0aad-41ed-83f4-97be242c8f20\29f6c1db-86da-48c5-9fdb-f2b67b1f44da" >> %LOG% 2>&1
+reg unload HKLM\J613SW >> %LOG% 2>&1
+reg unload HKLM\J613SYS >> %LOG% 2>&1
+call :restoreboot
+echo J613 postcfg DONE >> %LOG%
+copy /y %LOG% %STICK%\j613-postcfg.log >nul
+copy /y %LOG% %ESP%\j613-postcfg.log >nul
+echo J613 settings written, boot files restored. Shutting down: pull the stick, then boot normally.
+ping -n 6 127.0.0.1 >nul
+wpeutil shutdown
+exit /b 0
+
+rem boot files renamed in macOS so the firmware boots the stick; put them back
+:restoreboot
+if not defined ESP exit /b 0
+if exist %ESP%\EFI\Microsoft\Boot\bootmgfw.efi.j613off ren %ESP%\EFI\Microsoft\Boot\bootmgfw.efi.j613off bootmgfw.efi
+if exist %ESP%\EFI\BOOT\BOOTAA64.EFI.j613off ren %ESP%\EFI\BOOT\BOOTAA64.EFI.j613off BOOTAA64.EFI
+if exist %ESP%\EFI\Microsoft\Boot\bootmgfw.efi (echo boot files restored >> %LOG%) else (echo WARNING bootmgfw.efi missing on %ESP% >> %LOG%)
+exit /b 0
+
 :fail
+call :restoreboot
 echo J613 install STOPPED, nothing else was done >> %LOG%
 copy /y %LOG% %STICK%\ >nul
 start notepad %LOG%
