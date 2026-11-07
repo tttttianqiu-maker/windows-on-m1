@@ -7603,3 +7603,18 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
 - m1n1 6a77e9f: at the OS's HCRST (replay #2) redo hv_prepare_j313_xhci_darts()
   and log PORTSC after it; log every non-doorbell/non-ERDP guest write in the
   OS phase (80 entries).
+
+### EXP-20261107-038 — Plan B scripted install from the internal WINSRC partition
+
+- user-approved disk change: macOS `diskutil addPartition disk0s4 ExFAT WINSRC 10G`
+  in the 194.8 GB free gap (dry run reviewed first); install.wim copied and
+  verified byte-identical; stick boot.wim index 2 patched (winpeshl.ini ->
+  j613-launch.cmd);
+- WinPE runs 1-3 stopped safely before any disk write (findstr/find absent in
+  Setup's WinPE; fixed to cmd built-ins, d497700/6f47ce2);
+- run 20261107-202213 (m1n1 6a77e9f): STEP 1-8 completed, DISM applied Windows
+  11 Pro, bcdboot created the BCD on WINESP, OOBE answer file copied, `J613
+  install DONE`, then `wpeutil reboot` (PSCI RESET in hv.log);
+- resulting disk0 (macOS view): s5 WINSRC 10 GB, s6 MSR 16.8 MB, s7 WINESP
+  536.9 MB, s8 Windows 184.2 GB, all inside the former free gap; macOS,
+  Asahi, EFI-WINDO and Recovery unchanged.
