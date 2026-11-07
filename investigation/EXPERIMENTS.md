@@ -7452,3 +7452,13 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
 - expected: no EL2 fault after secondaries idle; Windows continues booting;
 - failure criteria: reset in DXE (then cyc_ovrd's IRQ/FIQ mode change is the
   issue), the same fault (state loss has another cause), or a bugcheck.
+
+### EXP-20261107-028 — result
+
+- build m1n1 0754222 / Mu 74110ab (j613-wfi-20);
+- no EL2 fault after the secondaries idle; **Windows Setup ("Windows 11 Setup —
+  Please wait") is on screen** via the virtual display (user screenshot 14:32);
+- cyc_ovrd on T8122 validated together with fast_ipi, boot-CPU-first MADT,
+  first-match MPIDR lookup and the CPU_ON ALREADY_ON guard.
+- next: input (no keyboard/mouse in the guest yet); install target needs the
+  user's approval (the emulated NVMe is the Air's whole internal SSD).
