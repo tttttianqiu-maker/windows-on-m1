@@ -7400,3 +7400,24 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
 - failure criteria: reset in DXE again (then the cause is outside the feature
   set: CNTHCTL ordering or secondary init changes), CPU1 hang (IPI path
   insufficient, add cyc_ovrd next), or a bugcheck.
+
+### EXP-20261107-025 — result
+
+- run 20261107-141719, build m1n1 0d1325b / Mu ae70694 (17b, virtual display;
+  17 was built with the physical display by mistake and refused by the runner);
+- no reset in DXE: Mu, Windows Boot Manager and the Windows spinner came up;
+- **SMP works**: CPU_ON 0x1, 0x2, 0x3 -> `secondary N init done (step=8)` and
+  `Entering guest secondary N` for 1..3 (the CPU1 hang is fixed by fast_ipi);
+- then CPU_ON for MPIDR 0x10100 = the boot CPU itself (MADT listed Sawtooth-0
+  first, but iBoot starts the M3 on Everest-0): `secondary 4 init done
+  (step=0)`, then m1n1 data abort on CPU2, FAR 0x108, PC in
+  hv_wfx_resume_pc, "Unhandled exception, rebooting".
+
+### EXP-20261107-026 — boot CPU first in the MADT, CPU_ON ALREADY_ON guard (planned)
+
+- changes: Mu `74110ab23941fba063bde150835d6fb2c74490b3` (MADT: Everest-0 first, GicId/UID unchanged), m1n1 `3867b04bf8777239bfc0d601cd54fabb113e5839`
+  (PSCI CPU_ON on a core already in the guest returns ALREADY_ON);
+- expected: CPU_ON for 0x0..0x3 and 0x10101..0x10103, all `Entering guest
+  secondary`, Windows past SMP and on toward Setup;
+- failure criteria: m1n1 exception, `already on` print (Windows still targets
+  its own core), or a bugcheck / hang after SMP.
