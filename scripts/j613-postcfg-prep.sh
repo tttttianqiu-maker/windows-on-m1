@@ -8,8 +8,10 @@ die() { printf '\033[1;31mSTOP: %s\033[0m\n' "$*" >&2; exit 1; }
 say() { printf '\033[1;36m==> %s\033[0m\n' "$*"; }
 [ -d /Volumes/WINSRC ] || die "WINSRC not mounted"
 [ -f /Volumes/WINBOOT/sources/boot.wim ] || die "plug in the install stick"
-curl -fsSL https://raw.githubusercontent.com/tttttianqiu-maker/windows-on-m1/576465406dbbb9ab12908694edd2bd721b154b2e/tools/j613/autoinstall/j613-install.cmd -o /Volumes/WINSRC/j613-install.cmd
-grep -q ":postcfg" /Volumes/WINSRC/j613-install.cmd || die "download failed"
+curl -fsSL https://raw.githubusercontent.com/tttttianqiu-maker/windows-on-m1/47701960e1006c497b0ca8989a53e3506a6c02ec/tools/j613/autoinstall/j613-install.cmd -o /Volumes/WINSRC/j613-install.cmd
+curl -fsSL https://raw.githubusercontent.com/tttttianqiu-maker/windows-on-m1/47701960e1006c497b0ca8989a53e3506a6c02ec/tools/j613/autoinstall/j613-jobs.cmd -o /Volumes/WINSRC/j613-jobs.cmd
+mkdir -p /Volumes/WINSRC/j613-jobs/drivers
+grep -q "GroupPolicy" /Volumes/WINSRC/j613-install.cmd && grep -q pnputil /Volumes/WINSRC/j613-jobs.cmd || die "download failed"
 ESPDEV=$(diskutil list disk0 | awk '/ WINESP /{print $NF}')
 [ -n "$ESPDEV" ] || die "no WINESP partition found"
 diskutil mount "$ESPDEV" >/dev/null
