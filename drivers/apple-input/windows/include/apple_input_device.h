@@ -138,7 +138,6 @@ NTSTATUS AiTrackpadVhfStart(PAI_DEVICE_CONTEXT Context);
 NTSTATUS AiTrackpadVhfSubmit(PAI_DEVICE_CONTEXT Context,
                              const UCHAR *Report, SIZE_T Length);
 VOID AiTrackpadVhfStop(PAI_DEVICE_CONTEXT Context);
-ULONGLONG AiNowMicroseconds(VOID);
 NTSTATUS AiTrackpadPipelineProcess(PAI_DEVICE_CONTEXT Context,
                                    const UCHAR *Payload, SIZE_T Length);
 VOID AiTrackpadRecordAxisDiagnostics(PAI_DEVICE_CONTEXT Context);

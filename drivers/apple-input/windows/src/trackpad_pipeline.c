@@ -15,7 +15,7 @@ static VOID AiCounterIncrement(ULONGLONG *Counter)
     InterlockedIncrement64((volatile LONG64 *)Counter);
 }
 
-ULONGLONG AiNowMicroseconds(VOID)
+static ULONGLONG AiNowMicroseconds(VOID)
 {
     LARGE_INTEGER frequency;
     ULONGLONG count = (ULONGLONG)
