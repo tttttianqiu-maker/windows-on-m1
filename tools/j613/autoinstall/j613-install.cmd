@@ -19,7 +19,7 @@ diskpart /s X:\ld.txt > X:\disks.txt
 type X:\disks.txt >> %LOG%
 set DISK=
 set COUNT=0
-for /f "tokens=2,6,7" %%a in ('findstr /r /c:"Disk [0-9]" X:\disks.txt') do (
+for /f "tokens=2,6,7" %%a in ('type X:\disks.txt ^| find "Online"') do (
   if "%%c"=="GB" if %%b GEQ 100 (set DISK=%%a& set /a COUNT+=1)
 )
 if not "%COUNT%"=="1" (echo expected exactly one disk with ^>=100 GB free, found %COUNT% >> %LOG% & goto fail)
