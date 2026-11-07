@@ -7421,3 +7421,17 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
   secondary`, Windows past SMP and on toward Setup;
 - failure criteria: m1n1 exception, `already on` print (Windows still targets
   its own core), or a bugcheck / hang after SMP.
+
+### EXP-20261107-026 — result
+
+- run 20261107-142130, build m1n1 3867b04 / Mu 74110ab;
+- Windows' first CPU_ON is now MPIDR 0x0 (the MADT reorder took effect), but
+  m1n1 translated it to CPU23: unpopulated psci_cpu_data_array slots also hold
+  0 and the lookup kept the last match; "Secondary 23 published", then hv.log
+  idle (hang waiting for a nonexistent core).
+
+### EXP-20261107-027 — MPIDR translation first match (planned)
+
+- single variable: m1n1 `f1ba49de92cbea7e6451fb7df55007bf8de88e8a` (break on first match), Mu 74110ab;
+- expected: CPU_ON 0x0 -> CPU0, then 0x1..0x3, 0x10101..0x10103, all entering
+  the guest, Windows past SMP.
