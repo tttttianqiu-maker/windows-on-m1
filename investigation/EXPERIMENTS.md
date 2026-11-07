@@ -7669,3 +7669,19 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
 - Split checkpoint: part A (m1n1 only, no Windows driver needed) = hv.log dchid lines
   with build 30 + firmware; part B (Windows driver) needs Windows test signing,
   which is the owner's decision and is not automated.
+- Result part A, build 30 (2026-11-07 ~21:45 UTC): Windows booted to the desktop
+  (after chkdsk from earlier hard stops). hv.log: "dchid: trackpad firmware staged
+  (80448 bytes)", ADT mtp reg[0] 0x2fa400000+0x6c000, reg[1] 0x2fa050000+0x4000,
+  "SRAM window 0x2fa050000 + 0x4000", "hv_mtp: RTKit boot failed", "dchid: AVHD
+  device at 0x5300000000, GSIV 65", "dchid: MTP not running". Verdict: rejected
+  for input; the AVHD always-mapped fallback confirmed (no guest fault).
+  Cause (hypothesis): the SRAM window came from ADT reg[1], which is not the SRAM
+  (Asahi t8122.dtsi: 0x2fac00000 + 0x100000).
+
+### EXP-20261107-041 — MTP SRAM from the device tree (planned)
+
+- single variable: hv_mtp SRAM window 0x2fac00000 + 0x100000 (m1n1 9631b52);
+  root 420d921, Mu c0cd337, clean; artifact j613-mtpsram-31.tar.gz sha256
+  8b04f50c68e3cdd76f8ab0ec68d719abf022e742081f23ff834f4036c42f83a6.
+- checkpoint: "hv_mtp: MTP running" and "dchid: bring-up done"; failure: RTKit
+  boot failed again (then the rtkit lines decide the next step).
