@@ -7697,3 +7697,9 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
   e615c5c0a63b2401773ba9efd3e3db1d29b4833088838a49c326656e7ce0a66c.
 - checkpoint: "hv_mtp: power domain enable ok" then "MTP running"; failure:
   power enable FAILED or still no HELLO.
+- Result EXP-20261107-042 (build 32, ~21:57 UTC): "hv_mtp: power domain enable
+  FAILED (-1)" (pmgr_adt_power_enable found no usable clock-gates on
+  /arm-io/mtp), then "did not receive HELLO". Verdict: inconclusive on the power
+  hypothesis; the domain was never enabled. Next: dump /arm-io/mtp properties
+  and the pmgr device/domain list (names containing "MTP") over the proxy, then
+  enable that domain by id.
