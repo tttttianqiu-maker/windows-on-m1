@@ -7474,3 +7474,22 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
 - user action: boot with the hub (stick + keyboard + mouse) on the guest port;
 - expected: tells whether USBXHCI starts the controller (USBCMD.RS), whether
   ports see the hub, and whether interrupts reach the guest.
+
+### EXP-20261107-029 — result
+
+- run 1 (20261107-144810, stick direct): SError on an EL2-forwarded Mu read of
+  xHCI USBSTS (0xb02280024) while the Shell scanned the stick; one-off after
+  hub hot-plugging in the previous session, not reproduced after a cold boot;
+- run 2 (cold boot, stick direct): Windows Setup again; the guest-port xHCI is
+  running (USBCMD=0x2005 RS|INTE, USBSTS=0, IMAN0=0x2) but 75/75 ticks show
+  PORTSC P1=0x2a0 P2=0xe0002a0 (CCS=0, PLS=RxDetect) and 0 forwarded IRQs: no
+  device is connected from Windows' point of view although Mu enumerated the
+  stick (USB 2.0) minutes earlier. A stick replug came after the trace window.
+
+### EXP-20261107-030 — Type-C/DWC3 state in the trace (planned)
+
+- m1n1 f195373: tick trace adds hpm1 (TPS) mode/status/power/int-event every
+  ~16 s and DWC3 GCTL/GSTS/GUSB2PHYCFG/GUSB3PIPECTL; window ~15 min;
+- user action: at Setup, replug the stick once;
+- expected: shows whether VBUS/data role or the USB2 PHY is lost after
+  ExitBootServices, and whether a replug produces a port change.
