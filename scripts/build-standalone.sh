@@ -7,7 +7,7 @@ ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 BOARD=${BOARD:-j313}
 case "$BOARD" in
     j313) MU_PKG=MacBookAirMid2020Pkg; MU_NAME=MacBookAirMid2020
-          FD_FILE=J313MACBOOKAIRMID2020_EFI.fd; FD_OUT=$FD_OUT ;;
+          FD_FILE=J313MACBOOKAIRMID2020_EFI.fd; FD_OUT=J313_EFI.fd ;;
     j613) MU_PKG=MacBookAirM3J613Pkg; MU_NAME=MacBookAirM3J613
           FD_FILE=MACBOOKAIRM3J613_EFI.fd; FD_OUT=J613_EFI.fd ;;
     *) echo "unknown BOARD=$BOARD (expected j313 or j613)" >&2; exit 2 ;;
