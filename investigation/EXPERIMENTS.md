@@ -7379,3 +7379,24 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
   secondaries `init done` and `Entering guest secondary`, Windows proceeds
   past SMP; failure criteria: chainload reset (bundle breaks early boot ->
   drop chicken bits first), secondary step report, or a bugcheck.
+
+### EXP-20261107-024 — result
+
+- run 20261107-140955 (host runs/), build m1n1 f95d97d / Mu ae70694;
+- chainload OK (`CPU: M3 Everest`, `HV: counter redirect EL1=0x0 EL12=0x0`),
+  all 7 secondaries started, guest entered on CPU 4;
+- about 1 s into Mu DXE (SimpleFbDxe, mid-line UART output) the Air reset with
+  no m1n1 panic or exception; USB disappeared (Errno 6 in the runner);
+- conclusion: the bundle breaks early guest execution. Per the plan, the M3
+  feature set and chicken bits are dropped first; fast_ipi stays.
+
+### EXP-20261107-025 — fast_ipi only, rest of the bundle reverted (planned)
+
+- single variable vs EXP-024: features_t8122 = features_unknown + fast_ipi, no
+  chicken init (m1n1 `0d1325b6d9e7db129f46b7db27599d63b6ee2143`, Mu ae70694); this is the EXP-023 configuration on
+  the current tree (counter redirect inactive with the feature flag off);
+- expected: Mu and Windows Boot Manager as in EXP-021, then all secondaries
+  `init done` / `Entering guest secondary` and Windows past SMP bring-up;
+- failure criteria: reset in DXE again (then the cause is outside the feature
+  set: CNTHCTL ordering or secondary init changes), CPU1 hang (IPI path
+  insufficient, add cyc_ovrd next), or a bugcheck.
