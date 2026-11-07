@@ -77,6 +77,24 @@ done
 PROXY=$(echo "$DEVS" | sed -n 1p); VUART=$(echo "$DEVS" | sed -n 2p)
 say "Air found: proxy=$PROXY vuart=$VUART"
 sleep 2
+# The Air may still be running (or hung in) the previous guest: its USB serial
+# devices exist but no proxy answers. Then wait for a cold boot.
+if [ -z "${J613_TEST_DEVGLOB:-}" ] && ! "$PY" tools/proxy-ping.py "$PROXY" >/dev/null 2>&1; then
+    warn "the Air is still running the previous build: cold-boot it now"
+    osascript -e 'display notification "Cold boot the MacBook Air into Windows 11 now" with title "J613"' >/dev/null 2>&1
+    command -v say >/dev/null && /usr/bin/say "Cold boot the MacBook Air into Windows 11 now" >/dev/null 2>&1 &
+    OK=""
+    for _ in $(seq 1 100); do
+        sleep 3
+        DEVS=$(ls /dev/cu.usbmodem* 2>/dev/null | sort)
+        [ "$(echo "$DEVS" | grep -c usbmodem)" -ge 2 ] || continue
+        PROXY=$(echo "$DEVS" | sed -n 1p); VUART=$(echo "$DEVS" | sed -n 2p)
+        if "$PY" tools/proxy-ping.py "$PROXY" >/dev/null 2>&1; then OK=1; break; fi
+    done
+    [ -n "$OK" ] || { warn "no m1n1 proxy answered within 5 minutes"; exit 1; }
+    say "proxy answering: proxy=$PROXY vuart=$VUART"
+    sleep 1
+fi
 
 # --- 4. start -------------------------------------------------------------------
 RUN="runs/$(date +%Y%m%d-%H%M%S)"
