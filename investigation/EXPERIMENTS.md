@@ -7572,3 +7572,19 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
 - m1n1 b8d9ea8: logs each guest write to USBCMD, CONFIG, PORTSC1/2 with the
   port state right after (40 firmware, 100 OS entries);
 - expected: shows the Windows port sequence that loses the connect.
+
+### EXP-20261107-035 — result
+
+- run 20261107-193218 (m1n1 4e3594c, single budget; enough entries for both):
+  - Mu: HCRST -> CONFIG=0x7f (P1=0x2a0) -> ... USBCMD=0 (P1=0x206e1, CCS) ->
+    RS=1 -> port reset/enable -> enumerates;
+  - Windows: HCRST -> CONFIG=0x7f (P1=0x2a0) -> USBCMD=0x2005 right away
+    (P1=0x2a0) -> PORTSC1=0x200, PORTSC2=0xe000200 -> P1 stays 0x2a0;
+- conclusion: the USB2 attach is latched while halted (Mu's delay before RS);
+  after an early RS the port never reports it, even on a replug.
+
+### EXP-20261107-036 — hold Run/Stop until a port connects (planned)
+
+- m1n1 0b3973a: a guest RS write while HCH=1 waits (<= 1.5 s) for PORTSC1/2
+  CCS before reaching hardware; logs `HV: xHCI Run/Stop held N ms`;
+- expected: Windows sees the stick (Setup gets past "media driver missing").
