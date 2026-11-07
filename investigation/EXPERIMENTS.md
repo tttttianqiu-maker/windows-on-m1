@@ -7435,3 +7435,20 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
 - single variable: m1n1 `f1ba49de92cbea7e6451fb7df55007bf8de88e8a` (break on first match), Mu 74110ab;
 - expected: CPU_ON 0x0 -> CPU0, then 0x1..0x3, 0x10101..0x10103, all entering
   the guest, Windows past SMP.
+
+### EXP-20261107-027 — result
+
+- run 20261107-142810, build m1n1 f1ba49d / Mu 74110ab;
+- **all 8 cores up**: CPU_ON 0x0..0x3, 0x10101..0x10103 -> init done (step=8)
+  and guest entry for CPUs 0,1,2,3,5,6,7;
+- then CPU7 (0x80010103): EL2 data abort FAR 0x108, PC in hv_exc_sync WFI
+  path (ctx->elr after the physical wfi), every GPR zero: the core lost its
+  register state across WFI (CYC_OVRD at reset value; cyc_ovrd feature off).
+  Same PC as the CPU2 crash in EXP-025.
+
+### EXP-20261107-028 — cyc_ovrd on T8122 (planned)
+
+- single variable: m1n1 `075422263bbc33a8f30fa6072ca2ce6891936752` (features_t8122 + cyc_ovrd), Mu 74110ab;
+- expected: no EL2 fault after secondaries idle; Windows continues booting;
+- failure criteria: reset in DXE (then cyc_ovrd's IRQ/FIQ mode change is the
+  issue), the same fault (state loss has another cause), or a bugcheck.
