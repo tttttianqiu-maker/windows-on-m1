@@ -7618,3 +7618,11 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
 - resulting disk0 (macOS view): s5 WINSRC 10 GB, s6 MSR 16.8 MB, s7 WINESP
   536.9 MB, s8 Windows 184.2 GB, all inside the former free gap; macOS,
   Asahi, EFI-WINDO and Recovery unchanged.
+
+### EXP-20261107-039 — first boot of the installed Windows from the internal SSD
+
+- stick removed; Mu boots Windows Boot Manager from WINESP (disk0s7) under the
+  m1n1 hypervisor (assisted mode, m1n1 6a77e9f / Mu 74110ab);
+- specialize ("Starting services") and OOBE ran unattended (oobe-unattend.xml);
+- 21:14 user report: Windows 11 runs (desktop reached). Input still absent
+  (guest-port USB attach not detected under Windows, EXP-029..037).
