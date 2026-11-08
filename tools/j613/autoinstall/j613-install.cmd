@@ -144,6 +144,21 @@ reg add HKLM\J613SW\Microsoft\Windows\CurrentVersion\Run /v J613Power /t REG_SZ 
 reg query "%PW%\User\PowerSchemes\381b4222-f694-41f0-9685-ff5bb260df2e\238c9fa8-0aad-41ed-83f4-97be242c8f20\29f6c1db-86da-48c5-9fdb-f2b67b1f44da" >> %LOG% 2>&1
 reg unload HKLM\J613SW >> %LOG% 2>&1
 reg unload HKLM\J613SYS >> %LOG% 2>&1
+rem ===== optional: drivers from WINSRC\j613-drivers (CI test builds) =====
+rem Owner-approved (2026-11-08): test signing so the WDK test-signed
+rem AppleMtpInput driver loads; Mu has Secure Boot off. Injected offline like
+rem OEM drivers. Undo later with: bcdedit /set {default} testsigning off
+if not exist %STICK%\j613-drivers\ goto nodrivers
+echo J613 STEP P2 offline drivers + test signing& echo J613 STEP P2 offline drivers + test signing >> %LOG%
+dism /image:%TGT%\ /add-driver /driver:%STICK%\j613-drivers /recurse /forceunsigned >> %LOG% 2>&1
+if errorlevel 1 echo WARNING dism add-driver failed >> %LOG%
+bcdedit /store %ESP%\EFI\Microsoft\Boot\BCD /set {default} testsigning on >> %LOG% 2>&1
+if errorlevel 1 echo WARNING bcdedit testsigning failed >> %LOG%
+bcdedit /store %ESP%\EFI\Microsoft\Boot\BCD /enum {default} >> %LOG% 2>&1
+dism /image:%TGT%\ /get-drivers >> %LOG% 2>&1
+if exist %STICK%\j613-drivers-done rmdir /s /q %STICK%\j613-drivers-done
+move %STICK%\j613-drivers %STICK%\j613-drivers-done >> %LOG% 2>&1
+:nodrivers
 call :restoreboot
 echo J613 postcfg DONE >> %LOG%
 copy /y %LOG% %STICK%\j613-postcfg.log >nul
