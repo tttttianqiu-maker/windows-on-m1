@@ -1,6 +1,7 @@
 #!/bin/sh
 # One entry point for the J613 workflow on the Hackintosh.
 #   j613 watch   start the watcher (runs new ~/Downloads/j613-*.tar.gz builds)
+#   j613 again   run the current build again (watcher must be running)
 #   j613 probe   read-only MTP power probe (Air at "Running proxy...", watcher stopped)
 #   j613 log     input-related lines from the last run's hv.log
 #   j613 hv      last 60 lines of hv.log
@@ -11,6 +12,7 @@ ROOT=$(cd "$(dirname "$(readlink -f "$0" 2>/dev/null || python3 -c 'import os,sy
 cd "$ROOT" || exit 1
 case "${1:-help}" in
     watch) exec sh scripts/j613-autorun.sh ;;
+    again) mkdir -p runs && touch runs/.go && echo "re-run requested: the watcher starts it once the Air is at Running proxy..." ;;
     probe) git pull -q; exec sh scripts/j613-probe-mtp.sh ;;
     log)   grep -E "hv_mtp|dchid|rtkit" hv.log | tail -40 ;;
     hv)    tail -60 hv.log ;;
@@ -19,5 +21,5 @@ case "${1:-help}" in
     setup) mkdir -p "$HOME/bin" && ln -sf "$ROOT/scripts/j613" "$HOME/bin/j613" &&
            { grep -q 'HOME/bin' "$HOME/.zshrc" 2>/dev/null || echo 'export PATH="$HOME/bin:$PATH"' >> "$HOME/.zshrc"; } &&
            echo "done: open a new terminal and type  j613" ;;
-    *)     sed -n 3,9p "$0" | sed 's/^# *//' ;;
+    *)     sed -n 3,10p "$0" | sed 's/^# *//' ;;
 esac
