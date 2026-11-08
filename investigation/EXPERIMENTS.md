@@ -7747,3 +7747,15 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
   RTKit serviced while waiting for READY (m1n1 see manifest of
   j613-tppower-35.tar.gz).
 - checkpoint: "trackpad W x H (1/100 mm)" and "trackpad ready"; haptic click.
+- Result EXP-20261108-045 (build 35, run 20261108-103726): PM2 rejected, PM1
+  fallback, MTP GPIO cmd 3 for afe-reset (line 8) via SMC ("rtkit(smc): booting"),
+  "multi-touch ready", dims 12194 x 7408 (1/100 mm), x -5787..6256 y -157..7102,
+  "bring-up done after 365 ms (keyboard ready, trackpad ready)". Then SError at
+  EL2, FAR 0x2a1200020 (debug UART), "Unhandled exception, rebooting".
+  Verdict: confirmed for trackpad bring-up; new defect: SMC left booted.
+
+### EXP-20261108-046 — SMC shut down after each GPIO write (planned)
+
+- single variable: smc_init/write/smc_shutdown per GPIO operation (upstream
+  dcp.c pattern); oslog log lines rate-limited (output only).
+- checkpoint: same bring-up, no SError, Windows desktop; haptic click.
