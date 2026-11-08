@@ -7778,3 +7778,10 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
   comes up (builds 35/36). Next: keyboard-only run (firmware file renamed).
 - Next boot: Windows Automatic Repair -> "Choose an option" (no input). Fix:
   postcfg STEP P3 boot policy (CHG-20261108-009).
+- postcfg run 2 log (read via prep 11:09): chkdsk ran, reg load SYSTEM still
+  failed (registry skipped); DISM add-driver failed 0x800703F1 (ERROR_BADDB, same
+  hive); bcdedit testsigning Yes; postcfg DONE. GPO mailbox files were written.
+- Mailbox staged directly on WINSRC (11:10): j613-jobs/10-power-settings.cmd
+  (online powercfg/reg) and j613-jobs/drivers/AppleMtpInput (pnputil). Expected
+  risk: pnputil may refuse the untrusted WDK test signer non-interactively.
+- postcfg run 3 (prep ea3b50b) pending: adds STEP P3 boot policy.
