@@ -7789,3 +7789,17 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
   \Windows\system32\config\system, 0xc000014c (STATUS_REGISTRY_CORRUPT). Owner
   approved wipe + reinstall of the Windows partition only. Trackpad firmware to
   stay disabled until the post-bring-up SError is fixed.
+
+### EXP-20261108-047 — stability: MTP bring-up off + setup resume (planned)
+
+- Context: local agent found EL1 SErrors on several CPUs during the WinPE /
+  first-boot runs with the trackpad firmware disabled (ESR 0xbe000000, FAR
+  0xffffbcf11fc01008, same ELR); first-boot Setup then failed ("restarted
+  unexpectedly"). Its fix commit d52be10 was never pushed (no GitHub auth on
+  the Hackintosh) and is superseded by this entry.
+- Single variable for stability: m1n1 skips the whole MTP/DockChannel bring-up
+  (host switch, `j613 mtp off`); build 37 j613-mtpswitch-37.tar.gz sha256 157eddb1a88c2c4b54b99ab40e3f29af1529b5cba1e453d527a9785dac9ab29f
+  (m1n1 529fdd4). Plus the required one-shot setup resume (prep --fix-setup,
+  ChildCompletion setup.exe=3) to get past the failed Setup.
+- Checkpoint: no SError; Setup continues to the desktop and stays up.
+  If SErrors stop: the keyboard-side MTP path (DAPF/OSLOG DMA) is the cause.
