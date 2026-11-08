@@ -7718,3 +7718,18 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
   7ac73f561e8159dcf4c7f15dce4eac070807d9c6dd20ed03983af300a6b7f659.
 - checkpoint: "hv_mtp: DAPF ... ok" then "MTP running"; failure: still no HELLO
   (next: check MTP SRAM for resident firmware / iBoot segment-ranges).
+- Result EXP-20261108-043 (build 33, ~09:20 UTC): "DAPF /arm-io/dart-mtp init ok",
+  "rtkit(mtp): booting with version 12", SRAM buffers ep1 0x2facab000 and ep2
+  0x2faca8000, "hv_mtp: MTP running" (first time), then "unknown oslog message
+  106000000000000" and "dchid: bring-up incomplete after 3000 ms (keyboard
+  absent, trackpad absent)". Verdict: confirmed, DAPF was the HELLO blocker.
+  No haptic click reported. Next: the unanswered OSLOG buffer request.
+
+### EXP-20261108-044 — answer the OSLOG buffer request (planned)
+
+- single behavioural variable: rtkit replies to OSLOG buffer requests like
+  Linux; measurement-only: dchid RX counters/first bytes at timeout
+  (m1n1 e9148bc, root 1f5c2aa, clean); artifact j613-oslog-34.tar.gz sha256
+  5223bc19b76961e4940be0e25474e0a3f9de818beda5c3d44a00783036abdc7c.
+- checkpoint: "oslog buffer ... at dva", then "dchid: interface" lines and
+  "bring-up done"; else the rx counters say whether any DockChannel byte arrived.
