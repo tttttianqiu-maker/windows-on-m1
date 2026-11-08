@@ -33,6 +33,25 @@ This file is the operational state for an agent running **on the Hackintosh**
   -> `dist/j613/debug-uart/` (MANIFEST.json, SHA256SUMS); package as
   `tar -czf ~/Downloads/j613-<name>-<n>.tar.gz -C dist/j613 debug-uart`.
 
+## Building on the Hackintosh (Intel macOS)
+
+Until now every build was made on Linux (cloud) and copied to ~/Downloads.
+To build locally:
+- m1n1 (native, clang): `brew install llvm lld rustup` (then `rustup-init`,
+  `rustup target add aarch64-unknown-none-softfloat`); see
+  `m1n1_windows/README.md` (macOS section).
+- Mu (EDK2 / stuart) only builds in Linux: install Docker Desktop and run with
+  `STANDALONE_BUILD_CONTAINER=always` (the script auto-selects the container
+  only on Apple Silicon): `STANDALONE_BUILD_CONTAINER=always BOARD=j613 sh
+  scripts/build-development.sh --display virtual --debug uart`
+  (`Dockerfile.build`; `sh scripts/build-standalone.sh --dry-run` prints the steps).
+- Mu was last changed in c0cd337 (AVHD); the trackpad work is m1n1-only.
+- Check the result: `MANIFEST.json` commits/`source_dirty`, `sha256sum -c SHA256SUMS`.
+- CI artifacts (Windows driver) without login:
+  `https://nightly.link/tttttianqiu-maker/windows-on-m1/actions/runs/<run>/<artifact>.zip`.
+- Trackpad firmware: `firmware/tpmtfw-j613.bin` (gitignored) via
+  `python3 tools/j613/extract-tpmtfw.py "/Volumes/EFI - WINDO"` on the Air.
+
 ## State (2026-11-08)
 
 Working:
