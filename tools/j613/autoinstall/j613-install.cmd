@@ -117,10 +117,30 @@ exit /b 0
 rem ===== installed Windows found: offline settings for a machine without input =====
 :postcfg
 echo J613 STEP P1 offline settings: no sleep, hibernate, screen off, disk idle, lock screen& echo J613 STEP P1 offline settings >> %LOG%
+rem Hard power cuts leave the volume/hives dirty (EXP-20261108-046: "registry
+rem database is corrupt"). Owner-approved repair: chkdsk /f once, as Windows'
+rem own autochk does, then retry. If the hives still do not load, skip only
+rem the registry settings; the mailbox files and drivers do not need them.
+set REGOK=1
+fsutil dirty query %TGT% >> %LOG% 2>&1
+dir /a %TGT%\Windows\System32\config\SYSTEM* %TGT%\Windows\System32\config\SOFTWARE* %TGT%\hiberfil.sys >> %LOG% 2>&1
 reg load HKLM\J613SYS %TGT%\Windows\System32\config\SYSTEM >> %LOG% 2>&1
-if errorlevel 1 (echo reg load SYSTEM failed >> %LOG% & goto fail)
+if not errorlevel 1 goto sysloaded
+echo reg load SYSTEM failed, running chkdsk /f %TGT%& echo reg load SYSTEM failed, running chkdsk /f %TGT% >> %LOG%
+chkdsk %TGT% /f /x >> %LOG% 2>&1
+reg load HKLM\J613SYS %TGT%\Windows\System32\config\SYSTEM >> %LOG% 2>&1
+if not errorlevel 1 goto sysloaded
+echo WARNING reg load SYSTEM failed after chkdsk, skipping registry settings >> %LOG%
+set REGOK=0
+goto noreg
+:sysloaded
 reg load HKLM\J613SW %TGT%\Windows\System32\config\SOFTWARE >> %LOG% 2>&1
-if errorlevel 1 (reg unload HKLM\J613SYS >nul 2>&1 & echo reg load SOFTWARE failed >> %LOG% & goto fail)
+if not errorlevel 1 goto swloaded
+reg unload HKLM\J613SYS >nul 2>&1
+echo WARNING reg load SOFTWARE failed, skipping registry settings >> %LOG%
+set REGOK=0
+goto noreg
+:swloaded
 set PW=HKLM\J613SYS\ControlSet001\Control\Power
 reg add %PW% /v HibernateEnabled /t REG_DWORD /d 0 /f >> %LOG% 2>&1
 reg add %PW% /v HibernateEnabledDefault /t REG_DWORD /d 0 /f >> %LOG% 2>&1
@@ -131,6 +151,9 @@ for %%k in (7516b95f-f776-4464-8c53-06167f40cc99\3c0bc021-c8a8-4e07-a973-6b14cbc
   reg add "%PW%\User\PowerSchemes\381b4222-f694-41f0-9685-ff5bb260df2e\%%k" /v ACSettingIndex /t REG_DWORD /d 0 /f >> %LOG% 2>&1
   reg add "%PW%\User\PowerSchemes\381b4222-f694-41f0-9685-ff5bb260df2e\%%k" /v DCSettingIndex /t REG_DWORD /d 0 /f >> %LOG% 2>&1
 )
+goto regpart2
+:noreg
+:regpart2
 rem mailbox: j613-jobs.cmd as a local Group Policy machine startup script (SYSTEM)
 copy /y %STICK%\j613-jobs.cmd %TGT%\Windows\j613-jobs.cmd >> %LOG% 2>&1
 mkdir %TGT%\Windows\System32\GroupPolicy\Machine\Scripts\Startup 2>nul
@@ -139,11 +162,13 @@ copy /y %STICK%\j613-jobs.cmd %TGT%\Windows\System32\GroupPolicy\Machine\Scripts
 attrib +h %TGT%\Windows\System32\GroupPolicy\Machine\Scripts\scripts.ini
 (echo [General]& echo gPCMachineExtensionNames=[{42B5FAAE-6536-11D2-AE5A-0000F87571E3}{40B6664F-4972-11D1-A7CA-0000F87571E3}]& echo Version=1) > %TGT%\Windows\System32\GroupPolicy\gpt.ini
 if not exist %STICK%\j613-jobs mkdir %STICK%\j613-jobs
+if "%REGOK%"=="0" goto skipreg2
 reg add HKLM\J613SW\Policies\Microsoft\Windows\Personalization /v NoLockScreen /t REG_DWORD /d 1 /f >> %LOG% 2>&1
 reg add HKLM\J613SW\Microsoft\Windows\CurrentVersion\Run /v J613Power /t REG_SZ /d "cmd /c powercfg /change monitor-timeout-ac 0 & powercfg /change monitor-timeout-dc 0 & powercfg /change standby-timeout-ac 0 & powercfg /change standby-timeout-dc 0 & powercfg /change disk-timeout-ac 0 & powercfg /change disk-timeout-dc 0 & powercfg /h off" /f >> %LOG% 2>&1
 reg query "%PW%\User\PowerSchemes\381b4222-f694-41f0-9685-ff5bb260df2e\238c9fa8-0aad-41ed-83f4-97be242c8f20\29f6c1db-86da-48c5-9fdb-f2b67b1f44da" >> %LOG% 2>&1
 reg unload HKLM\J613SW >> %LOG% 2>&1
 reg unload HKLM\J613SYS >> %LOG% 2>&1
+:skipreg2
 rem ===== optional: drivers from WINSRC\j613-drivers (CI test builds) =====
 rem Owner-approved (2026-11-08): test signing so the WDK test-signed
 rem AppleMtpInput driver loads; Mu has Secure Boot off. Injected offline like
