@@ -7733,3 +7733,17 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
   5223bc19b76961e4940be0e25474e0a3f9de818beda5c3d44a00783036abdc7c.
 - checkpoint: "oslog buffer ... at dva", then "dchid: interface" lines and
   "bring-up done"; else the rx counters say whether any DockChannel byte arrived.
+- Result EXP-20261108-044 (build 34, ~09:32 UTC): DockChannel HID up: interfaces
+  stm(3), multi-touch, keyboard(2), actuator(4), tp_accel(5) enabled; STM vendor
+  0x05ac product 0x0357 keyboard type 2; rx 1444 bytes, 19 packets, 0 resyncs;
+  24+ keyboard reports with real keys (e.g. 01 08 00 2c = Cmd+Space). Trackpad:
+  firmware sent (80416 bytes) then RESET_INTERFACE (power method 2, 9 bytes)
+  rejected 0xe00002c2. Verdict: confirmed for the keyboard (m1n1 level); OSLOG
+  reply unblocked the HID service. Next: power method 1 fallback.
+
+### EXP-20261108-045 — trackpad power method 1 fallback (planned)
+
+- single variable: on PM2 rejection use {0x40,1,iface,state}; GPIO requests and
+  RTKit serviced while waiting for READY (m1n1 see manifest of
+  j613-tppower-35.tar.gz).
+- checkpoint: "trackpad W x H (1/100 mm)" and "trackpad ready"; haptic click.
