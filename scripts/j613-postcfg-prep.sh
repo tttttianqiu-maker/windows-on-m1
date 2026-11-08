@@ -10,8 +10,16 @@ die() { printf '\033[1;31mSTOP: %s\033[0m\n' "$*" >&2; exit 1; }
 say() { printf '\033[1;36m==> %s\033[0m\n' "$*"; }
 [ -d /Volumes/WINSRC ] || die "WINSRC not mounted"
 [ -f /Volumes/WINBOOT/sources/boot.wim ] || die "plug in the install stick"
-curl -fsSL https://raw.githubusercontent.com/tttttianqiu-maker/windows-on-m1/5166992bb9072a21801691e7564523b2d5cc7c15/tools/j613/autoinstall/j613-install.cmd -o /Volumes/WINSRC/j613-install.cmd
-curl -fsSL https://raw.githubusercontent.com/tttttianqiu-maker/windows-on-m1/5166992bb9072a21801691e7564523b2d5cc7c15/tools/j613/autoinstall/j613-jobs.cmd -o /Volumes/WINSRC/j613-jobs.cmd
+# result of the previous WinPE run, if any
+for L in /Volumes/WINSRC/j613-postcfg.log /Volumes/WINSRC/j613-install.log; do
+    if [ -f "$L" ]; then
+        say "previous WinPE run ($L):"
+        tr -d '\r' < "$L" | grep -E "STEP|WARNING|STOPPED|DONE|failed|testsigning|Published Name|AppleMtp|successfully|chkdsk" | tail -25
+        break
+    fi
+done
+curl -fsSL https://raw.githubusercontent.com/tttttianqiu-maker/windows-on-m1/ee6abcfd0b89836e2f98b29affcc8e2b9afc336b/tools/j613/autoinstall/j613-install.cmd -o /Volumes/WINSRC/j613-install.cmd
+curl -fsSL https://raw.githubusercontent.com/tttttianqiu-maker/windows-on-m1/ee6abcfd0b89836e2f98b29affcc8e2b9afc336b/tools/j613/autoinstall/j613-jobs.cmd -o /Volumes/WINSRC/j613-jobs.cmd
 mkdir -p /Volumes/WINSRC/j613-jobs/drivers
 grep -q "GroupPolicy" /Volumes/WINSRC/j613-install.cmd && grep -q pnputil /Volumes/WINSRC/j613-jobs.cmd || die "download failed"
 grep -q "STEP P2" /Volumes/WINSRC/j613-install.cmd || die "install script without driver step"
@@ -37,4 +45,4 @@ for f in EFI/Microsoft/Boot/bootmgfw.efi EFI/BOOT/BOOTAA64.EFI; do
 done
 ls "$MNT/EFI/Microsoft/Boot/" | grep -i bootmgfw; ls "$MNT/EFI/BOOT/"
 sudo diskutil unmount "$ESPDEV" >/dev/null
-say "ready: shut down, stick in, boot Windows 11 (watcher). WinPE writes the settings, installs the driver, turns on test signing, restores the boot files and powers off."
+say "ready: shut down, stick in, boot Windows 11 (watcher). WinPE writes the settings, installs the driver, turns on test signing, turns off automatic repair, restores the boot files and powers off."
