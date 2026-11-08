@@ -10,8 +10,8 @@ die() { printf '\033[1;31mSTOP: %s\033[0m\n' "$*" >&2; exit 1; }
 say() { printf '\033[1;36m==> %s\033[0m\n' "$*"; }
 [ -d /Volumes/WINSRC ] || die "WINSRC not mounted"
 [ -f /Volumes/WINBOOT/sources/boot.wim ] || die "plug in the install stick"
-curl -fsSL https://raw.githubusercontent.com/tttttianqiu-maker/windows-on-m1/600855e3744d780280b53a71cbf9689610c4fd3b/tools/j613/autoinstall/j613-install.cmd -o /Volumes/WINSRC/j613-install.cmd
-curl -fsSL https://raw.githubusercontent.com/tttttianqiu-maker/windows-on-m1/600855e3744d780280b53a71cbf9689610c4fd3b/tools/j613/autoinstall/j613-jobs.cmd -o /Volumes/WINSRC/j613-jobs.cmd
+curl -fsSL https://raw.githubusercontent.com/tttttianqiu-maker/windows-on-m1/5166992bb9072a21801691e7564523b2d5cc7c15/tools/j613/autoinstall/j613-install.cmd -o /Volumes/WINSRC/j613-install.cmd
+curl -fsSL https://raw.githubusercontent.com/tttttianqiu-maker/windows-on-m1/5166992bb9072a21801691e7564523b2d5cc7c15/tools/j613/autoinstall/j613-jobs.cmd -o /Volumes/WINSRC/j613-jobs.cmd
 mkdir -p /Volumes/WINSRC/j613-jobs/drivers
 grep -q "GroupPolicy" /Volumes/WINSRC/j613-install.cmd && grep -q pnputil /Volumes/WINSRC/j613-jobs.cmd || die "download failed"
 grep -q "STEP P2" /Volumes/WINSRC/j613-install.cmd || die "install script without driver step"
