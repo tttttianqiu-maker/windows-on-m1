@@ -8,7 +8,16 @@
 set -euo pipefail
 # --reinstall: one-shot flag; WinPE wipes ONLY the "Windows" partition and
 #              reinstalls Windows 11 Pro, then applies everything below
-REINSTALL=0; [ "${1:-}" = "--reinstall" ] && REINSTALL=1
+# --fix-setup: one-shot flag; WinPE sets Setup\Status\ChildCompletion
+#              setup.exe=3 so a crashed first-boot Setup can continue
+REINSTALL=0; FIXSETUP=0
+for a in "$@"; do
+    case "$a" in
+        --reinstall) REINSTALL=1 ;;
+        --fix-setup) FIXSETUP=1 ;;
+        *) echo "unknown option $a" >&2; exit 2 ;;
+    esac
+done
 die() { printf '\033[1;31mSTOP: %s\033[0m\n' "$*" >&2; exit 1; }
 say() { printf '\033[1;36m==> %s\033[0m\n' "$*"; }
 [ -d /Volumes/WINSRC ] || die "WINSRC not mounted"
@@ -21,11 +30,11 @@ for L in /Volumes/WINSRC/j613-postcfg.log /Volumes/WINSRC/j613-install.log; do
         break
     fi
 done
-curl -fsSL https://raw.githubusercontent.com/tttttianqiu-maker/windows-on-m1/fef9358cce2c36fa464f0cae337c7691b06d22f1/tools/j613/autoinstall/j613-install.cmd -o /Volumes/WINSRC/j613-install.cmd
-curl -fsSL https://raw.githubusercontent.com/tttttianqiu-maker/windows-on-m1/fef9358cce2c36fa464f0cae337c7691b06d22f1/tools/j613/autoinstall/j613-jobs.cmd -o /Volumes/WINSRC/j613-jobs.cmd
+curl -fsSL https://raw.githubusercontent.com/tttttianqiu-maker/windows-on-m1/481ef70988088c61e072b197bc120c4bff0e0617/tools/j613/autoinstall/j613-install.cmd -o /Volumes/WINSRC/j613-install.cmd
+curl -fsSL https://raw.githubusercontent.com/tttttianqiu-maker/windows-on-m1/481ef70988088c61e072b197bc120c4bff0e0617/tools/j613/autoinstall/j613-jobs.cmd -o /Volumes/WINSRC/j613-jobs.cmd
 mkdir -p /Volumes/WINSRC/j613-jobs/drivers
 grep -q "GroupPolicy" /Volumes/WINSRC/j613-install.cmd && grep -q pnputil /Volumes/WINSRC/j613-jobs.cmd || die "download failed"
-grep -q "STEP P2" /Volumes/WINSRC/j613-install.cmd || die "install script without driver step"
+grep -q "STEP P2" /Volumes/WINSRC/j613-install.cmd && grep -q "STEP P1b" /Volumes/WINSRC/j613-install.cmd || die "install script too old"
 # CI run 42415908537 (root f913402), artifact AppleMtpInput-J613-ARM64-Debug
 TMPD=$(mktemp -d)
 curl -fsSL -o "$TMPD/drv.zip" "https://nightly.link/tttttianqiu-maker/windows-on-m1/actions/runs/42415908537/AppleMtpInput-J613-ARM64-Debug.zip"
@@ -38,7 +47,11 @@ cp "$(dirname "$SYS")"/AppleMtpInput.inf "$(dirname "$SYS")"/AppleMtpInput.sys "
 DIAG=$(find "$TMPD/x" -name AppleInputDiag.exe | head -1); [ -n "$DIAG" ] && cp "$DIAG" /Volumes/WINSRC/
 ls -la /Volumes/WINSRC/j613-drivers; rm -rf "$TMPD"
 say "driver staged (AppleMtpInput, test-signed)"
-rm -f /Volumes/WINSRC/j613-reinstall.flag
+rm -f /Volumes/WINSRC/j613-reinstall.flag /Volumes/WINSRC/j613-fixsetup.flag
+if [ "$FIXSETUP" = 1 ]; then
+    echo "owner-requested setup resume $(date)" > /Volumes/WINSRC/j613-fixsetup.flag
+    say "SETUP FIX armed: WinPE sets ChildCompletion setup.exe=3 (~3 min)"
+fi
 if [ "$REINSTALL" = 1 ]; then
     echo "owner-requested reinstall $(date)" > /Volumes/WINSRC/j613-reinstall.flag
     say "REINSTALL armed: the next WinPE run wipes the Windows partition and reinstalls (~20 min)"
