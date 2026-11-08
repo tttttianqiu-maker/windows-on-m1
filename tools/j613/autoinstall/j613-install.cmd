@@ -166,6 +166,16 @@ for %%k in (7516b95f-f776-4464-8c53-06167f40cc99\3c0bc021-c8a8-4e07-a973-6b14cbc
   reg add "%PW%\User\PowerSchemes\381b4222-f694-41f0-9685-ff5bb260df2e\%%k" /v ACSettingIndex /t REG_DWORD /d 0 /f >> %LOG% 2>&1
   reg add "%PW%\User\PowerSchemes\381b4222-f694-41f0-9685-ff5bb260df2e\%%k" /v DCSettingIndex /t REG_DWORD /d 0 /f >> %LOG% 2>&1
 )
+rem --- opt-in (prep --fix-setup, owner-approved 2026-11-08): first-boot Setup
+rem     died with "The computer restarted unexpectedly"; ChildCompletion
+rem     setup.exe=3 lets Windows Setup continue. One-shot flag on WINSRC.
+if not exist %STICK%\j613-fixsetup.flag goto nofixsetup
+echo J613 STEP P1b setup resume (ChildCompletion setup.exe=3)& echo J613 STEP P1b setup resume >> %LOG%
+reg add HKLM\J613SYS\Setup\Status\ChildCompletion /v setup.exe /t REG_DWORD /d 3 /f >> %LOG% 2>&1
+reg query HKLM\J613SYS\Setup\Status\ChildCompletion >> %LOG% 2>&1
+if exist %STICK%\j613-fixsetup.used del /f %STICK%\j613-fixsetup.used
+ren %STICK%\j613-fixsetup.flag j613-fixsetup.used
+:nofixsetup
 goto regpart2
 :noreg
 :regpart2

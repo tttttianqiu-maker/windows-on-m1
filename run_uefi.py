@@ -391,7 +391,14 @@ hv.pre_guest_start = configure_display_consumers
 # J613 built-in trackpad: hand the multi-touch firmware to the hypervisor, which
 # uploads it to the MTP during hv_start() (keyboard works without it).
 mtp_fw = args.mtp_firmware or (pathlib.Path(__file__).resolve().parent / "firmware" / "tpmtfw-j613.bin")
-if mtp_fw and pathlib.Path(mtp_fw).is_file():
+no_mtp = os.environ.get("J613_NO_MTP") == "1" or (pathlib.Path(__file__).resolve().parent / "firmware" / "no-mtp").exists()
+if no_mtp:
+    # Stability switch (`j613 mtp off`): m1n1 skips the MTP/DockChannel bring-up.
+    if hasattr(p, "hv_mtp_firmware") and p.hv_mtp_firmware(0, 0):
+        print("J613 MTP bring-up disabled (firmware/no-mtp)")
+    else:
+        print("WARNING: this m1n1 cannot disable the MTP bring-up")
+elif mtp_fw and pathlib.Path(mtp_fw).is_file():
     blob = pathlib.Path(mtp_fw).read_bytes()
     fw_addr = p.malloc(len(blob))
     iface.writemem(fw_addr, blob)
