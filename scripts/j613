@@ -1,0 +1,23 @@
+#!/bin/sh
+# One entry point for the J613 workflow on the Hackintosh.
+#   j613 watch   start the watcher (runs new ~/Downloads/j613-*.tar.gz builds)
+#   j613 probe   read-only MTP power probe (Air at "Running proxy...", watcher stopped)
+#   j613 log     input-related lines from the last run's hv.log
+#   j613 hv      last 60 lines of hv.log
+#   j613 pull    git pull (repo + submodules)
+#   j613 fw      install ~/Downloads/tpmtfw-j613.bin into firmware/
+#   j613 setup   make "j613" available in every terminal
+ROOT=$(cd "$(dirname "$(readlink -f "$0" 2>/dev/null || python3 -c 'import os,sys;print(os.path.realpath(sys.argv[1]))' "$0")")/.." && pwd)
+cd "$ROOT" || exit 1
+case "${1:-help}" in
+    watch) exec sh scripts/j613-autorun.sh ;;
+    probe) git pull -q; exec sh scripts/j613-probe-mtp.sh ;;
+    log)   grep -E "hv_mtp|dchid|rtkit" hv.log | tail -40 ;;
+    hv)    tail -60 hv.log ;;
+    pull)  git pull && git submodule update --init ;;
+    fw)    mkdir -p firmware && mv ~/Downloads/tpmtfw-j613.bin firmware/ && ls -la firmware/tpmtfw-j613.bin ;;
+    setup) mkdir -p "$HOME/bin" && ln -sf "$ROOT/scripts/j613" "$HOME/bin/j613" &&
+           { grep -q 'HOME/bin' "$HOME/.zshrc" 2>/dev/null || echo 'export PATH="$HOME/bin:$PATH"' >> "$HOME/.zshrc"; } &&
+           echo "done: open a new terminal and type  j613" ;;
+    *)     sed -n 3,9p "$0" | sed 's/^# *//' ;;
+esac
