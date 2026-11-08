@@ -169,6 +169,14 @@ reg query "%PW%\User\PowerSchemes\381b4222-f694-41f0-9685-ff5bb260df2e\238c9fa8-
 reg unload HKLM\J613SW >> %LOG% 2>&1
 reg unload HKLM\J613SYS >> %LOG% 2>&1
 :skipreg2
+rem ===== boot policy: hypervisor crashes are not Windows boot failures =====
+rem Without input, WinRE's "Choose an option" is a dead end (2026-11-08), so
+rem never enter automatic repair. Owner-approved.
+echo J613 STEP P3 boot policy: no automatic repair& echo J613 STEP P3 boot policy >> %LOG%
+bcdedit /store %ESP%\EFI\Microsoft\Boot\BCD /set {default} bootstatuspolicy IgnoreAllFailures >> %LOG% 2>&1
+bcdedit /store %ESP%\EFI\Microsoft\Boot\BCD /set {default} recoveryenabled No >> %LOG% 2>&1
+if exist %ESP%\EFI\Microsoft\Boot\bootstat.dat del /f %ESP%\EFI\Microsoft\Boot\bootstat.dat >> %LOG% 2>&1
+
 rem ===== optional: drivers from WINSRC\j613-drivers (CI test builds) =====
 rem Owner-approved (2026-11-08): test signing so the WDK test-signed
 rem AppleMtpInput driver loads; Mu has Secure Boot off. Injected offline like
