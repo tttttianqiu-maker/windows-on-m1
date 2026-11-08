@@ -1,6 +1,7 @@
 # Agent handoff: Windows 11 on the MacBook Air M3 (J613, T8122)
 
-Read `AGENTS.md` first (source-first rules, experiment ledger, change ledger).
+Read `AGENTS.md` first (source-first rules, experiment ledger, change ledger),
+then **`docs/J613-HANDOFF.md`** (the complete history and technical detail).
 This file is the operational state for an agent running **on the Hackintosh**
 (Intel macOS, repo at `~/src/windows-on-m1`, branch `j613-bringup`).
 
@@ -33,24 +34,18 @@ This file is the operational state for an agent running **on the Hackintosh**
   -> `dist/j613/debug-uart/` (MANIFEST.json, SHA256SUMS); package as
   `tar -czf ~/Downloads/j613-<name>-<n>.tar.gz -C dist/j613 debug-uart`.
 
-## Building on the Hackintosh (Intel macOS)
+## Building on the Hackintosh (Intel macOS) — no Docker
 
-Until now every build was made on Linux (cloud) and copied to ~/Downloads.
-To build locally:
-- m1n1 (native, clang): `brew install llvm lld rustup` (then `rustup-init`,
-  `rustup target add aarch64-unknown-none-softfloat`); see
-  `m1n1_windows/README.md` (macOS section).
-- Mu (EDK2 / stuart) only builds in Linux: install Docker Desktop and run with
-  `STANDALONE_BUILD_CONTAINER=always` (the script auto-selects the container
-  only on Apple Silicon): `STANDALONE_BUILD_CONTAINER=always BOARD=j613 sh
-  scripts/build-development.sh --display virtual --debug uart`
-  (`Dockerfile.build`; `sh scripts/build-standalone.sh --dry-run` prints the steps).
-- Mu was last changed in c0cd337 (AVHD); the trackpad work is m1n1-only.
-- Check the result: `MANIFEST.json` commits/`source_dirty`, `sha256sum -c SHA256SUMS`.
-- CI artifacts (Windows driver) without login:
-  `https://nightly.link/tttttianqiu-maker/windows-on-m1/actions/runs/<run>/<artifact>.zip`.
-- Trackpad firmware: `firmware/tpmtfw-j613.bin` (gitignored) via
-  `python3 tools/j613/extract-tpmtfw.py "/Volumes/EFI - WINDO"` on the Air.
+- **Use `j613 build <name>`** (`scripts/j613-build-m1n1.sh`): compiles m1n1
+  natively and reuses the installed `J613_EFI.fd`; writes
+  `~/Downloads/j613-<name>.tar.gz` for the watcher. Needs
+  `brew install llvm lld rustup` (+ `rustup-init`,
+  `rustup target add aarch64-unknown-none-softfloat`) and python3.
+- **Do not set up Docker.** It is only needed if `mu/` changes (Mu last changed
+  in c0cd337); the script refuses with a clear message in that case. All
+  current work (trackpad SError) is m1n1-only.
+- Commit before building so MANIFEST.json says `source_dirty: false`.
+- CI artifacts without login and the trackpad firmware: see docs/J613-HANDOFF.md §3, §6.
 
 ## State (2026-11-08)
 
