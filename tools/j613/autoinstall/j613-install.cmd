@@ -78,6 +78,20 @@ set ESP=S:
 :haveparts
 if not exist %TGT%\ (echo %TGT% missing >> %LOG% & goto fail)
 if not exist %ESP%\ (echo %ESP% missing >> %LOG% & goto fail)
+rem --- owner-requested reinstall (2026-11-08: SYSTEM hive corrupt after hard
+rem     power cuts). One-shot: the flag on WINSRC is consumed before formatting,
+rem     so a later run can never wipe again. Only the "Windows" NTFS volume.
+if not exist %STICK%\j613-reinstall.flag goto noreinstall
+if /i "%TGT%"=="%STICK%" (echo reinstall: target is the stick, refusing >> %LOG% & goto fail)
+echo J613 STEP R reinstall: formatting %TGT% (Windows volume)& echo J613 STEP R reinstall: formatting %TGT% >> %LOG%
+if exist %STICK%\j613-reinstall.used del /f %STICK%\j613-reinstall.used
+ren %STICK%\j613-reinstall.flag j613-reinstall.used
+if exist %STICK%\j613-reinstall.flag (echo reinstall: cannot consume the flag, refusing >> %LOG% & goto fail)
+rem diskpart, not format.com: format may stop and ask for the volume label
+(echo select volume %TGT:~0,1%& echo format fs=ntfs quick label=Windows& echo assign letter=%TGT:~0,1% noerr) > X:\fmt.txt
+diskpart /s X:\fmt.txt >> %LOG% 2>&1
+if exist %TGT%\Windows\System32\winload.efi (echo reinstall: format failed >> %LOG% & goto fail)
+:noreinstall
 if exist %TGT%\Windows\System32\winload.efi goto postcfg
 echo J613 STEP 5 check target size& echo J613 STEP 5 check target size >> %LOG%
 rem an empty root makes dir print only "File Not Found", so give it one file
@@ -111,8 +125,9 @@ del %TGT%\j613.tmp 2>nul
 echo J613 install DONE >> %LOG%
 copy /y %LOG% %STICK%\ >nul
 copy /y %LOG% %ESP%\ >nul
-wpeutil reboot
-exit /b 0
+rem straight on to the offline settings / driver / boot policy on the fresh,
+rem clean hives; postcfg shuts down when it is done
+goto postcfg
 
 rem ===== installed Windows found: offline settings for a machine without input =====
 :postcfg
