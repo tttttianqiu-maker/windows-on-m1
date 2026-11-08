@@ -7785,3 +7785,7 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
   (online powercfg/reg) and j613-jobs/drivers/AppleMtpInput (pnputil). Expected
   risk: pnputil may refuse the untrusted WDK test signer non-interactively.
 - postcfg run 3 (prep ea3b50b) pending: adds STEP P3 boot policy.
+- 11:17: Windows Recovery "system registry file is missing or contains errors",
+  \Windows\system32\config\system, 0xc000014c (STATUS_REGISTRY_CORRUPT). Owner
+  approved wipe + reinstall of the Windows partition only. Trackpad firmware to
+  stay disabled until the post-bring-up SError is fixed.
