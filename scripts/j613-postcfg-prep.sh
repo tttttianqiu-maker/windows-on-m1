@@ -6,6 +6,9 @@
 # 2. renames Windows' boot files on WINESP (FAT32) so the firmware boots the stick's
 #    WinPE once; WinPE writes the settings and renames them back.
 set -euo pipefail
+# --reinstall: one-shot flag; WinPE wipes ONLY the "Windows" partition and
+#              reinstalls Windows 11 Pro, then applies everything below
+REINSTALL=0; [ "${1:-}" = "--reinstall" ] && REINSTALL=1
 die() { printf '\033[1;31mSTOP: %s\033[0m\n' "$*" >&2; exit 1; }
 say() { printf '\033[1;36m==> %s\033[0m\n' "$*"; }
 [ -d /Volumes/WINSRC ] || die "WINSRC not mounted"
@@ -18,8 +21,8 @@ for L in /Volumes/WINSRC/j613-postcfg.log /Volumes/WINSRC/j613-install.log; do
         break
     fi
 done
-curl -fsSL https://raw.githubusercontent.com/tttttianqiu-maker/windows-on-m1/ee6abcfd0b89836e2f98b29affcc8e2b9afc336b/tools/j613/autoinstall/j613-install.cmd -o /Volumes/WINSRC/j613-install.cmd
-curl -fsSL https://raw.githubusercontent.com/tttttianqiu-maker/windows-on-m1/ee6abcfd0b89836e2f98b29affcc8e2b9afc336b/tools/j613/autoinstall/j613-jobs.cmd -o /Volumes/WINSRC/j613-jobs.cmd
+curl -fsSL https://raw.githubusercontent.com/tttttianqiu-maker/windows-on-m1/fef9358cce2c36fa464f0cae337c7691b06d22f1/tools/j613/autoinstall/j613-install.cmd -o /Volumes/WINSRC/j613-install.cmd
+curl -fsSL https://raw.githubusercontent.com/tttttianqiu-maker/windows-on-m1/fef9358cce2c36fa464f0cae337c7691b06d22f1/tools/j613/autoinstall/j613-jobs.cmd -o /Volumes/WINSRC/j613-jobs.cmd
 mkdir -p /Volumes/WINSRC/j613-jobs/drivers
 grep -q "GroupPolicy" /Volumes/WINSRC/j613-install.cmd && grep -q pnputil /Volumes/WINSRC/j613-jobs.cmd || die "download failed"
 grep -q "STEP P2" /Volumes/WINSRC/j613-install.cmd || die "install script without driver step"
@@ -35,6 +38,11 @@ cp "$(dirname "$SYS")"/AppleMtpInput.inf "$(dirname "$SYS")"/AppleMtpInput.sys "
 DIAG=$(find "$TMPD/x" -name AppleInputDiag.exe | head -1); [ -n "$DIAG" ] && cp "$DIAG" /Volumes/WINSRC/
 ls -la /Volumes/WINSRC/j613-drivers; rm -rf "$TMPD"
 say "driver staged (AppleMtpInput, test-signed)"
+rm -f /Volumes/WINSRC/j613-reinstall.flag
+if [ "$REINSTALL" = 1 ]; then
+    echo "owner-requested reinstall $(date)" > /Volumes/WINSRC/j613-reinstall.flag
+    say "REINSTALL armed: the next WinPE run wipes the Windows partition and reinstalls (~20 min)"
+fi
 ESPDEV=$(diskutil list disk0 | awk '/ WINESP /{print $NF}')
 [ -n "$ESPDEV" ] || die "no WINESP partition found"
 sudo diskutil mount "$ESPDEV" >/dev/null
@@ -45,4 +53,5 @@ for f in EFI/Microsoft/Boot/bootmgfw.efi EFI/BOOT/BOOTAA64.EFI; do
 done
 ls "$MNT/EFI/Microsoft/Boot/" | grep -i bootmgfw; ls "$MNT/EFI/BOOT/"
 sudo diskutil unmount "$ESPDEV" >/dev/null
+[ "$REINSTALL" = 1 ] && say "reinstall: leave it alone ~20-25 min, it powers off by itself"
 say "ready: shut down, stick in, boot Windows 11 (watcher). WinPE writes the settings, installs the driver, turns on test signing, turns off automatic repair, restores the boot files and powers off."
