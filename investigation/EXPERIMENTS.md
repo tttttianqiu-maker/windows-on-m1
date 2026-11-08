@@ -7771,3 +7771,10 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
   still failing (install script 5166992bb9072a21801691e7564523b2d5cc7c15, prep 784a921ad96eea46cea8ac25f8a362561da2b5da).
 - Also: build 36 run before this: full bring-up, keyboard reports after it,
   no SError reported; user reports the trackpad clicks (haptics live).
+- Run 20261108-110113 (build 36, boot files restored => postcfg run 2 reached its
+  end): Mu loaded \EFI\BOOT\BOOTAA64.EFI from WINESP (HD 7), "WindowsAutoBootDxe:
+  starting", then SError FAR 0x2a1200020, L2C_ERR_ADR 0x3820103fbbdc140 (RAM near
+  m1n1). Same signature as build 35. Crashes appear only since the trackpad
+  comes up (builds 35/36). Next: keyboard-only run (firmware file renamed).
+- Next boot: Windows Automatic Repair -> "Choose an option" (no input). Fix:
+  postcfg STEP P3 boot policy (CHG-20261108-009).
