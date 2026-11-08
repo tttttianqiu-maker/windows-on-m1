@@ -7759,3 +7759,15 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
 - single variable: smc_init/write/smc_shutdown per GPIO operation (upstream
   dcp.c pattern); oslog log lines rate-limited (output only).
 - checkpoint: same bring-up, no SError, Windows desktop; haptic click.
+
+### EXP-20261108-046b — postcfg WinPE run (driver + test signing)
+
+- Result run 1 (~09:55 UTC, install script 600855e): diskpart resume OK
+  (WINSRC C:, Windows 171 GB, WINESP), "STEP P1 offline settings",
+  "ERROR: The configuration registry database is corrupt", "reg load SYSTEM
+  failed", boot files restored, STOPPED (nothing written). Cause hypothesis:
+  dirty NTFS/hives after repeated hard power cuts.
+- Next (owner-approved): chkdsk /f /x then retry; registry settings skipped if
+  still failing (install script 5166992bb9072a21801691e7564523b2d5cc7c15, prep 784a921ad96eea46cea8ac25f8a362561da2b5da).
+- Also: build 36 run before this: full bring-up, keyboard reports after it,
+  no SError reported; user reports the trackpad clicks (haptics live).
