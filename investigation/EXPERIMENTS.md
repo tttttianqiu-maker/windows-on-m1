@@ -7703,3 +7703,18 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
   hypothesis; the domain was never enabled. Next: dump /arm-io/mtp properties
   and the pmgr device/domain list (names containing "MTP") over the proxy, then
   enable that domain by id.
+- Probe 20261108-101642 (read-only, proxy): /arm-io/mtp has no clock-gates or
+  power-gates; pmgr MTP_FABRIC..MTP_DMA (ids 336-346) are all "no ps";
+  MTP ASC CPU_CONTROL reads 0x00000000 (block responds, CPU stopped).
+  Power-domain hypothesis rejected. Asahi rtkit-helper boots with RUN + wake
+  only (no firmware load). Upstream kboot.c runs dapf_init_all() (incl.
+  /arm-io/dart-mtp index 1) before Linux; the hypervisor path never did.
+
+### EXP-20261108-043 — MTP DAPF before boot (planned)
+
+- single variable: dapf_init("/arm-io/dart-mtp", 1) before the MTP DART/ASC
+  boot; failed pmgr call removed (m1n1 1f2feb3, root 2a3c4ce, clean);
+  artifact j613-mtpdapf-33.tar.gz sha256
+  7ac73f561e8159dcf4c7f15dce4eac070807d9c6dd20ed03983af300a6b7f659.
+- checkpoint: "hv_mtp: DAPF ... ok" then "MTP running"; failure: still no HELLO
+  (next: check MTP SRAM for resident firmware / iBoot segment-ranges).
