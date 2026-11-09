@@ -423,5 +423,15 @@ elif mtp_fw and pathlib.Path(mtp_fw).is_file():
 elif args.mtp_firmware:
     raise SystemExit(f"--mtp-firmware {args.mtp_firmware} not found")
 
+# `j613 usb reset`: Linux-ordered guest-port PHY + DWC3 reset when the guest OS resets
+# the xHCI (m1n1 usb_guest_port_reset_ordered). Experimental, off by default.
+if (os.environ.get("J613_USB_RESET") == "1" or
+        (pathlib.Path(__file__).resolve().parent / "firmware" / "usb-reset").exists()):
+    try:
+        p.hv_usb_reset_mode(1)
+        print("Guest USB: ordered PHY + DWC3 reset at the OS controller reset ON")
+    except Exception as e:  # older m1n1 without P_HV_USB_RESET_MODE
+        print(f"WARNING: this m1n1 cannot do the ordered USB reset ({e})")
+
 print("Starting guest...")
 hv.start()
