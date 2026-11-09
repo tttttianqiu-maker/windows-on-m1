@@ -7837,3 +7837,20 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
 - Failure: "MMU: TZn region has bad bounds" or an early crash after the unmap
   (wrong register offsets) -> revert to build 37 and compare with an ADT dump of
   /chosen/carveout-memory-map.
+- Amendment 2026-11-09 ~19:05 UTC (before the run): the run uses build 39
+  instead of 38. Build 39 = build 38 + an opt-in panel mirror that stays OFF
+  (`j613 screen` off; hv_tick returns immediately) + an SError diagnostic line,
+  so the behavioural variable versus build 37 is still only the TZ unmap.
+  Artifact j613-tzfix-screen-39.tar.gz sha256
+  c4c49e8b3cdc8e1417d775451aa6934776e6d8e1c10c81711c8816318632e81e
+  (m1n1 00e3571, Mu c0cd337, root bbcc1d9, clean).
+- WinPE side: prep `--reinstall --no-driver` (prep 461348a, scripts pinned at
+  73a0cab). The previous reinstall also injected the never-run AppleMtpInput
+  driver and turned on test signing, which made two new variables in one run;
+  this one changes none of that. The prep now also stages oobe-unattend.xml,
+  which it never did before, and WinPE refuses to format without it.
+- Owner steps: `j613 mtp off`; prep on the Air; stick in; `j613 watch` +
+  `j613 again`. Follow mode carries WinPE -> Setup reboots -> desktop.
+- Checkpoint: "MCC: Initialized T8122 MCCs" and "MMU: Unmapping TZn region"
+  in the early log, proxyclient "Unmap [..]" lines, no SError through WinPE,
+  Setup and 30 min at the desktop.
