@@ -78,8 +78,11 @@ Open, in priority order:
    driver, test signing, no automatic repair, then powers off. Do it with
    build 38. The watcher always runs the NEWEST ~/Downloads/j613-*.tar.gz —
    check with `ls -t ~/Downloads/j613-*.tar.gz | head -1` before a run.
-3. After that: verify the keyboard in Windows (AppleInputDiag.exe on WINSRC),
-   then re-enable the trackpad once item 1 is fixed.
+3. Keyboard/trackpad in Windows: EXP-049 (build 40) = keys reach m1n1, no
+   input in Windows. m1n1 ae2af33 (CHG-20261109-010) sanitizes what the guest
+   gets (Linux descriptor fixup, plain guest keyboard descriptor, ISO swap,
+   trackpad report trim, queue fixes) and logs guest AVHD use ("dchid: avhd").
+   Next: EXP-053 (build with scripts/j613-build-m1n1.sh, trackpad firmware back).
 4. USB under Windows: cause understood (Linux dwc3-apple.c: one connect event
    per PHY+DWC3 init; eUSB2 repeater reset by the PD chip). Build 40 logs the
    AIC level of the xHCI IRQ and has `j613 usb reset` (Linux-ordered reset).

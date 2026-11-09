@@ -7869,3 +7869,54 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
   (`j613 screen on`); 051 trackpad firmware back; 052 USB (`j613 usb reset`,
   stick plugged in before boot). Order and rationale:
   docs/J613-RESEARCH-2026-11-09.md §7.
+
+### EXP-20261109-049 — keyboard in Windows (build 40, MTP on) — result
+
+- Run 2026-11-09 ~21:15-21:30 UTC. Build 40 (j613-usbdiag-40, m1n1 b8c6737,
+  Mu c0cd337). Switches: MTP on, trackpad firmware absent, **Air screen on**
+  (deviation from the plan, which had the mirror as run 050; the owner saw the
+  desktop on the panel), USB reset off. WinPE pass first: prep at 461348a
+  without --no-driver; j613-postcfg.log: STEP P1, P3, P2, "AppleMtpInput.inf:
+  The driver package was successfully installed", testsigning Yes, Published
+  Name oem0.inf / oem1.inf, "postcfg DONE".
+- Windows desktop with the Test Mode watermark. No key had any effect
+  (Cmd = Windows key tried, Cmd+R, Cmd alone).
+- m1n1 side healthy: "dchid: bring-up done after 111 ms (keyboard ready,
+  trackpad waiting for firmware)", 24 keyboard reports logged while the owner
+  pressed keys: report 1, 10 bytes, e.g. 01 08 00 15 .. = Cmd+R, 01 00 00 29
+  = Esc. No SError line. MTP on with build 40 is stable through boot and
+  several minutes at the desktop (first MTP-on run since the TZ fix).
+- Not observable: whether AppleMtpInput started at all (m1n1 had no counters
+  for guest accesses to the AVHD page; `j613 log` only shows the last 40
+  dchid lines, so the "AVHD device at" line was not in the grep either).
+- Source review afterwards: the raw MTP keyboard descriptor was handed to
+  Windows unmodified and was never tested there (tests used a synthetic one).
+  The upstream DockChannel HID series (2026-06, patches 07/08) rewrites
+  oversized Report Size items (76 00 40 95 n) before Linux can parse it at
+  all; the driver also skips any keyboard descriptor > 512 bytes
+  (AI_DESCRIPTOR_MAX) and then never publishes the keyboard. Also found:
+  the m1n1 queue dropped the NEWEST report when full (stuck key/finger),
+  queued reports from before the driver started were replayed, MTP trackpad
+  reports may carry spare finger slots that the J313 decoder rejects (exact
+  length check), ISO layouts need the hid-apple 0x35/0x64 swap.
+  Fix: CHG-20261109-010 (m1n1 ae2af33), tests CHG-20261109-011.
+
+### EXP-20261109-053 — keyboard + trackpad with m1n1 ae2af33 (planned)
+
+- Build: m1n1 ae2af33 on the Hackintosh (scripts/j613-build-m1n1.sh
+  kbdfix-41, Mu c0cd337 reused from build 40). Windows side unchanged (driver
+  from EXP-049 already installed, no WinPE pass).
+- Switches: MTP on, **trackpad firmware back** (tpmtfw-j613.bin), screen on,
+  USB reset off. Two input changes in one run on purpose (owner: fewest
+  reboots); the new telemetry separates keyboard from trackpad, and an SError
+  on the trackpad path would show as before (35/36) -> rename the firmware
+  back to .off and re-run keyboard only.
+- Checkpoints in hv.log (grep "avhd\|rdesc\|oversized\|layout\|trackpad"):
+  "keyboard layout code N", descriptor dumps, "avhd guest read MAGIC"
+  (driver started) -> "read STATUS" -> "read keyboard DESC_LEN" -> "enabled
+  GSIV 65" -> "IRQ ack" -> "popped its first report"; trackpad: "sending ...
+  trackpad firmware (power method 1)", "trackpad W x H", "avhd guest read
+  DIMS". Owner: keys type, cursor moves, click works.
+- Failure split: no MAGIC read = driver never started (Windows/PnP side:
+  mailbox diag job, one macOS visit); MAGIC but no DESC_LEN = keyboard not
+  ready in STATUS; pops but no input = Windows HID side (descriptor dump).
