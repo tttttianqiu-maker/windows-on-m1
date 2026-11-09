@@ -383,9 +383,23 @@ def configure_display_consumers():
         if p.hv_fb_stream_config(fb.base, fb.size, fb.width, fb.height, fb.stride) != 1:
             raise RuntimeError("m1n1 rejected the virtual framebuffer mapping")
         print(f"Asynchronous framebuffer stream enabled: {fb.size / (1 << 20):.2f} MiB/frame")
+    if profile.virtual_display and screen_on:
+        # `j613 screen on`: m1n1 also copies the guest framebuffer into the boot
+        # framebuffer that is still scanning out on the internal panel (no DCP calls).
+        mirror = getattr(p, "hv_fb_mirror_config", None)
+        if mirror is None:
+            print("WARNING: this proxyclient cannot mirror to the Air's screen")
+        elif mirror(fb.base, fb.size, fb.width, fb.height, fb.stride, screen_rows) == 1:
+            print("Air screen mirror enabled")
+        else:
+            # Not fatal: the browser viewer still works. hv.log says why.
+            print("WARNING: m1n1 rejected the Air screen mirror (see hv.log 'fb mirror')")
     capture_contract(2, 3)
     capture_contract(3, 4)
 
+screen_on = (os.environ.get("J613_SCREEN") == "1" or
+             (pathlib.Path(__file__).resolve().parent / "firmware" / "screen-on").exists())
+screen_rows = int(os.environ.get("J613_SCREEN_ROWS", "0"))  # 0 = m1n1 default
 hv.pre_guest_start = configure_display_consumers
 
 # J613 built-in trackpad: hand the multi-touch firmware to the hypervisor, which

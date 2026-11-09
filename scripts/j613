@@ -7,6 +7,8 @@
 #   j613 hv      last 60 lines of hv.log
 #   j613 build N build m1n1 natively (no Docker), reuse Mu -> ~/Downloads/j613-N.tar.gz
 #   j613 mtp off|on  skip / allow the keyboard+trackpad (MTP) bring-up in m1n1
+#   j613 screen on|off  show Windows on the Air's own screen (copy to the boot framebuffer)
+#   j613 status  which build the watcher runs next, and the switches
 #   j613 pull    git pull (repo + submodules)
 #   j613 fw      install ~/Downloads/tpmtfw-j613.bin into firmware/
 #   j613 setup   make "j613" available in every terminal
@@ -25,10 +27,22 @@ case "${1:-help}" in
                on)  rm -f firmware/no-mtp; echo "MTP bring-up ON for the next runs" ;;
                *)   [ -e firmware/no-mtp ] && echo "MTP: off" || echo "MTP: on" ;;
            esac ;;
+    screen) mkdir -p firmware
+           case "${2:-}" in
+               on)  touch firmware/screen-on; echo "Air screen ON for the next runs (needs build 39 or newer)" ;;
+               off) rm -f firmware/screen-on; echo "Air screen OFF for the next runs" ;;
+               *)   [ -e firmware/screen-on ] && echo "screen: on" || echo "screen: off" ;;
+           esac ;;
+    status) B=$(ls -t "$HOME"/Downloads/j613-*.tar.gz 2>/dev/null | head -n 1)
+           echo "next build : ${B:-none} ($( [ -n "$B" ] && shasum -a 256 "$B" | cut -c1-12))"
+           [ -e firmware/no-mtp ] && echo "MTP        : off" || echo "MTP        : on"
+           [ -e firmware/tpmtfw-j613.bin ] && echo "trackpad fw: present" || echo "trackpad fw: absent (trackpad off)"
+           [ -e firmware/screen-on ] && echo "Air screen : on" || echo "Air screen : off"
+           pgrep -f j613-autorun.sh >/dev/null && echo "watcher    : running" || echo "watcher    : NOT running (j613 watch)" ;;
     pull)  git pull && git submodule update --init ;;
     fw)    mkdir -p firmware && mv ~/Downloads/tpmtfw-j613.bin firmware/ && ls -la firmware/tpmtfw-j613.bin ;;
     setup) mkdir -p "$HOME/bin" && ln -sf "$ROOT/scripts/j613" "$HOME/bin/j613" &&
            { grep -q 'HOME/bin' "$HOME/.zshrc" 2>/dev/null || echo 'export PATH="$HOME/bin:$PATH"' >> "$HOME/.zshrc"; } &&
            echo "done: open a new terminal and type  j613" ;;
-    *)     sed -n 3,12p "$0" | sed 's/^# *//' ;;
+    *)     sed -n 3,14p "$0" | sed 's/^# *//' ;;
 esac
