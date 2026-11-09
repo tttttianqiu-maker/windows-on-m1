@@ -83,6 +83,8 @@ rem     power cuts). One-shot: the flag on WINSRC is consumed before formatting,
 rem     so a later run can never wipe again. Only the "Windows" NTFS volume.
 if not exist %STICK%\j613-reinstall.flag goto noreinstall
 if /i "%TGT%"=="%STICK%" (echo reinstall: target is the stick, refusing >> %LOG% & goto fail)
+rem without the answer file the first boot stops at OOBE pages that need input
+if not exist %STICK%\oobe-unattend.xml (echo reinstall: %STICK%\oobe-unattend.xml missing, refusing >> %LOG% & goto fail)
 echo J613 STEP R reinstall: formatting %TGT% (Windows volume)& echo J613 STEP R reinstall: formatting %TGT% >> %LOG%
 if exist %STICK%\j613-reinstall.used del /f %STICK%\j613-reinstall.used
 ren %STICK%\j613-reinstall.flag j613-reinstall.used
@@ -120,6 +122,7 @@ echo J613 STEP 8 first-boot answer file& echo J613 STEP 8 first-boot answer file
 rem --- click-free first boot
 mkdir %TGT%\Windows\Panther
 copy /y %STICK%\oobe-unattend.xml %TGT%\Windows\Panther\unattend.xml >> %LOG%
+if not exist %TGT%\Windows\Panther\unattend.xml (echo answer file missing: OOBE would need input >> %LOG% & goto fail)
 
 del %TGT%\j613.tmp 2>nul
 echo J613 install DONE >> %LOG%
