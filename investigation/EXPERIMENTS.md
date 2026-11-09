@@ -7854,3 +7854,18 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
 - Checkpoint: "MCC: Initialized T8122 MCCs" and "MMU: Unmapping TZn region"
   in the early log, proxyclient "Unmap [..]" lines, no SError through WinPE,
   Setup and 30 min at the desktop.
+
+### Build 40 (artifact only, for the runs after EXP-20261109-048)
+
+- j613-usbdiag-40.tar.gz sha256
+  1ada2162e4923099f85a5127112327141fbc0f02ed5f603382025cc6c1de15bc
+  (m1n1 b8c6737, Mu c0cd337, root f6b6c1e, clean). Build 39 plus: the xHCI
+  trace prints the AIC level/mask of the guest xHCI IRQ (read-only), and the
+  opt-in `j613 usb reset` (Linux-ordered PHY + DWC3 reset at the OS HCRST,
+  off by default). Not to be dropped into ~/Downloads while EXP-048 runs (the
+  watcher starts the newest tarball).
+- Planned single-variable runs on build 40, each with its own entry:
+  049 keyboard (`j613 mtp on`, prep without `--no-driver`); 050 panel mirror
+  (`j613 screen on`); 051 trackpad firmware back; 052 USB (`j613 usb reset`,
+  stick plugged in before boot). Order and rationale:
+  docs/J613-RESEARCH-2026-11-09.md §7.
