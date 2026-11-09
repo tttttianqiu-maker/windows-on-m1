@@ -7827,7 +7827,10 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
 - Single variable: T8122 MCC init (TZ regs stride 0x14 start 0x6cc end 0x6d0
   enable 0x6d8, 16 ways) => carveouts unmapped for m1n1 and the guest; SError
   dump names the carveout containing L2C_ERR_ADR (diagnostic only).
-  m1n1 90dbf4c. MTP stays off (`j613 mtp off`) for this run.
+  m1n1 90dbf4c, Mu c0cd337, root 4c36cca, clean; artifact j613-tzfix-38.tar.gz
+  sha256 0fbebee43cc224260f5b8a26ff165ab5b821d01f4ecefc1aec234767c60cc320.
+  MTP stays off (`j613 mtp off`) for this run; done together with the
+  owner-approved reinstall (prep --reinstall) because Setup is broken.
 - Checkpoint: early log "MCC: Initialized T8122 MCCs" and "MMU: Unmapping TZn
   region at ..." lines, proxyclient "Unmap [..]" lines; no SError across the
   reinstall and first boot; Setup reaches the desktop.
