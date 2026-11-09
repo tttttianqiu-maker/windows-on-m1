@@ -7803,3 +7803,34 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
   ChildCompletion setup.exe=3) to get past the failed Setup.
 - Checkpoint: no SError; Setup continues to the desktop and stays up.
   If SErrors stop: the keyboard-side MTP path (DAPF/OSLOG DMA) is the cause.
+- Result run 20261108-133624 (~12:36 UTC): NOT build 37. The owner had not
+  saved j613-mtpswitch-37 to ~/Downloads, so the watcher ran build 36
+  (m1n1 5ef9643, root 1f3be50; MTP on). hv.log: all 7 secondaries up, xHCI
+  ticks, then the USB link dropped ("Device not configured") with no SError,
+  no "PSCI RESET FROM" line: a hard reset, not a Windows-requested reboot.
+  Next boot: "Windows could not complete the installation". Verdict:
+  inconclusive for the MTP hypothesis (wrong build).
+
+### EXP-20261109-048 — unmap the TZ carveouts on T8122 (planned)
+
+- Finding (source review, no hardware): m1n1's mcc_init() had no mcc,t8122
+  case ("MCC: Unsupported version"), so mcc_unmap_carveouts() returned early.
+  The TrustZone carveouts stayed mapped as normal cacheable memory in m1n1's
+  EL2 page tables, and proxyclient unmap_carveouts() got an empty list, so they
+  also stayed in the guest's stage 2. Speculative accesses into a TZ region
+  fault at the memory controller and arrive as asynchronous SErrors with
+  L2C_ERR_ADR at the faulting PA. Both logged addresses (0x103fbbdc140,
+  0x103fc1f4600) sit 64-68 MiB below the top of the 16 GiB DRAM
+  (0x10400000000), i.e. in the carveout area above mem_size, not near m1n1's
+  heap (~0x1005xxxxxxx) as §7 of the handoff assumed. Upstream m1n1 unmaps
+  these for T8122 (src/mcc.c t8122_tz_regs, mcc_init_m3).
+- Single variable: T8122 MCC init (TZ regs stride 0x14 start 0x6cc end 0x6d0
+  enable 0x6d8, 16 ways) => carveouts unmapped for m1n1 and the guest; SError
+  dump names the carveout containing L2C_ERR_ADR (diagnostic only).
+  m1n1 90dbf4c. MTP stays off (`j613 mtp off`) for this run.
+- Checkpoint: early log "MCC: Initialized T8122 MCCs" and "MMU: Unmapping TZn
+  region at ..." lines, proxyclient "Unmap [..]" lines; no SError across the
+  reinstall and first boot; Setup reaches the desktop.
+- Failure: "MMU: TZn region has bad bounds" or an early crash after the unmap
+  (wrong register offsets) -> revert to build 37 and compare with an ADT dump of
+  /chosen/carveout-memory-map.

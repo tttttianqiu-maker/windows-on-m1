@@ -47,7 +47,7 @@ This file is the operational state for an agent running **on the Hackintosh**
 - Commit before building so MANIFEST.json says `source_dirty: false`.
 - CI artifacts without login and the trackpad firmware: see docs/J613-HANDOFF.md §3, §6.
 
-## State (2026-11-08)
+## State (2026-11-09)
 
 Working:
 - SMP, Windows 11 Pro on the internal SSD (assisted, virtual display only;
@@ -61,17 +61,20 @@ Working:
   build-j613-mtp-arm64; host tests `tests/test_apple_input_j613.py`).
 
 Open, in priority order:
-1. **SError after trackpad bring-up** (builds 35/36): EL2 SError, FAR at the
-   debug UART 0x2a1200020 (just where m1n1 was), L2C_ERR_ADR points to RAM
-   near m1n1 (0x103fbbdc140, 0x103fc1f4600). Not seen with keyboard only
-   (builds 33/34). Hypotheses: MTP DMA (oslog buffer size: Linux treats the
-   OSLOG size field as bytes, we allocate 16 KiB; trackpad firmware buffer;
-   DAPF ranges vs m1n1 heap). Trackpad firmware is disabled for now by renaming
-   `firmware/tpmtfw-j613.bin` -> `.bin.off` (runner skips a missing file).
-2. Windows reinstall in progress (SYSTEM hive corrupt 0xc000014c after hard
-   power cuts): `scripts/j613-postcfg-prep.sh --reinstall` on the Air arms a
-   one-shot flag; WinPE reinstalls and applies settings, driver, test signing,
-   no automatic repair, then powers off.
+1. **SErrors** (builds 35/36, also EL1 SErrors in WinPE): likely cause found
+   2026-11-09 — m1n1 had no T8122 MCC support, so the TrustZone carveouts
+   stayed mapped (m1n1 + guest stage 2); L2C_ERR_ADR 0x103fbbdc140 /
+   0x103fc1f4600 is in the carveout area just below the top of the 16 GiB DRAM.
+   Fixed in m1n1 90dbf4c (build 38), hardware check pending
+   (EXP-20261109-048; handoff §7). Keep `j613 mtp off` and the trackpad
+   firmware renamed (`firmware/tpmtfw-j613.bin` -> `.bin.off`) until a clean
+   run, then re-enable one at a time.
+2. Windows Setup is broken ("could not complete the installation" after a
+   hard reset mid-Setup). Reinstall: `scripts/j613-postcfg-prep.sh --reinstall`
+   on the Air arms a one-shot flag; WinPE reinstalls and applies settings,
+   driver, test signing, no automatic repair, then powers off. Do it with
+   build 38. The watcher always runs the NEWEST ~/Downloads/j613-*.tar.gz —
+   check with `ls -t ~/Downloads/j613-*.tar.gz | head -1` before a run.
 3. After that: verify the keyboard in Windows (AppleInputDiag.exe on WINSRC),
    then re-enable the trackpad once item 1 is fixed.
 4. USB under Windows never sees a port connect (long-standing; see ledger).

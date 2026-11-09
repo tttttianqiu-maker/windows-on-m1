@@ -185,17 +185,27 @@ Host tests: `tests/test_apple_input_j613.py` (adapter + full transport
 simulation against a model of the m1n1 page). The PTP device stays silent
 until Windows sets input mode 3 — expected.
 
-## 7. Open problem #1: SError after the trackpad comes up
+## 7. Open problem #1: SErrors (likely cause found 2026-11-09)
 
+- **Root-cause candidate (EXP-20261109-048, m1n1 90dbf4c):** `mcc_init()` had no
+  `mcc,t8122` case, so on the M3 the TrustZone carveouts were never unmapped —
+  neither from m1n1's EL2 page tables nor from the guest's stage 2 (proxyclient
+  `unmap_carveouts()` got an empty list). Speculative accesses into a TZ region
+  arrive as asynchronous SErrors. Both logged `L2C_ERR_ADR` values (low 42 bits
+  0x103fbbdc140, 0x103fc1f4600) lie 64–68 MiB below the top of the 16 GiB DRAM
+  (0x10400000000), in the carveout area above `mem_size`, **not** near m1n1's
+  heap (~0x1005xxxxxxx) as first assumed below. `FAR 0x2a1200020` is stale
+  (Mu's identity-mapped UART access trapped earlier; FAR is not valid for an
+  SError). Fixed as upstream does it; the SError dump now says when
+  `L2C_ERR_ADR` is inside a carveout. Hardware confirmation pending.
 - Builds 35 and 36: bring-up completes, Windows boots for a while, then
-  **EL2 SError**, `FAR 0x2a1200020` (debug UART — just where m1n1 was),
-  `L2C_ERR_ADR` 0x3820103fbbdc140 / 0x3835103fc1f4600 = RAM ~0x103fb.. /
-  0x103fc.. near m1n1's heap. Once it hit exactly at
+  **EL2 SError**, `FAR 0x2a1200020`,
+  `L2C_ERR_ADR` 0x3820103fbbdc140 / 0x3835103fc1f4600. Once it hit exactly at
   `WindowsAutoBootDxe: starting \EFI\BOOT\BOOTAA64.EFI`.
 - Keyboard-only runs (builds 33/34, or 36 with the firmware file renamed) were
   not seen to crash. Trackpad is disabled for now:
   `firmware/tpmtfw-j613.bin` -> `.bin.off`.
-- Hypotheses (not yet tested): MTP DMA into a buffer it is not allowed to
+- Older hypotheses (only if the TZ fix does not stop the SErrors): MTP DMA into a buffer it is not allowed to
   write or that is too small — OSLOG buffer (we allocate 16 KiB; check the
   size semantics against Linux carefully), the trackpad firmware buffer
   (memalign'd from the m1n1 heap, DART-mapped; the MTP may write runtime data
@@ -257,8 +267,10 @@ What happened (2026-11-08):
 
 ## 9. Next steps (in order)
 
-1. Run the reinstall (owner: macOS prep `--reinstall`, stick run ~25 min,
-   stick out, boot). Keep the trackpad firmware renamed during this.
+1. Run the reinstall with build 38 (TZ carveout fix) and `j613 mtp off`
+   (owner: macOS prep `--reinstall`, stick run ~25 min, stick out, boot).
+   Keep the trackpad firmware renamed during this. Then `j613 mtp on`
+   (keyboard only) as the next single variable.
 2. Verify the keyboard in Windows (Device Manager `ACPI\APPL0613`, Test Mode,
    `AppleInputDiag.exe` on WINSRC; m1n1 side: `j613 log`).
 3. Fix §7 (m1n1-only, `j613 build`), then re-enable the trackpad.
