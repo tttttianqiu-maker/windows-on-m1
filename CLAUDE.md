@@ -29,6 +29,9 @@ This file is the operational state for an agent running **on the Hackintosh**
 - `j613 again`  re-run the current build (watcher must be running)
 - `j613 log`    MTP/DockChannel lines of `hv.log`; `j613 hv` tail of `hv.log`
 - `j613 probe`  read-only MTP power/ADT probe (Air at proxy, watcher stopped)
+- `j613 status` next tarball the watcher will run + all switches (check before every run)
+- `j613 mtp off|on`, `j613 screen on|off` (Windows on the Air's panel, build 39+),
+  `j613 usb reset|normal` (experimental Linux-ordered guest USB reset, build 40+)
 - Build (Linux or macOS with the cross toolchain):
   `BOARD=j613 sh scripts/build-development.sh --display virtual --debug uart`
   -> `dist/j613/debug-uart/` (MANIFEST.json, SHA256SUMS); package as
@@ -77,7 +80,11 @@ Open, in priority order:
    check with `ls -t ~/Downloads/j613-*.tar.gz | head -1` before a run.
 3. After that: verify the keyboard in Windows (AppleInputDiag.exe on WINSRC),
    then re-enable the trackpad once item 1 is fixed.
-4. USB under Windows never sees a port connect (long-standing; see ledger).
+4. USB under Windows: cause understood (Linux dwc3-apple.c: one connect event
+   per PHY+DWC3 init; eUSB2 repeater reset by the PD chip). Build 40 logs the
+   AIC level of the xHCI IRQ and has `j613 usb reset` (Linux-ordered reset).
+   Full write-up and the run order for everything else (screen, standalone,
+   battery, Wi-Fi, audio, GPU): `docs/J613-RESEARCH-2026-11-09.md`.
 
 ## References in this repo / scratch
 

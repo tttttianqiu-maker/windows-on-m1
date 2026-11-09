@@ -267,6 +267,9 @@ What happened (2026-11-08):
 
 ## 9. Next steps (in order)
 
+See also `docs/J613-RESEARCH-2026-11-09.md` (sources, USB root cause,
+screen mirror, standalone plan, wishlist status).
+
 1. Run the reinstall with build 38 (TZ carveout fix) and `j613 mtp off`
    (owner: macOS prep `--reinstall`, stick run ~25 min, stick out, boot).
    Keep the trackpad firmware renamed during this. Then `j613 mtp on`
