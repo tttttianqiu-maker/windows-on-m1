@@ -35,7 +35,7 @@ for L in /Volumes/WINSRC/j613-postcfg.log /Volumes/WINSRC/j613-install.log; do
     fi
 done
 # WinPE scripts and the first-boot answer file, all from one reviewed commit
-PIN=73a0cab12633fcbc5d378113f817287a33d6e99b
+PIN=e479e589635dc17b7524cb3bda6186a1eb0b0b88
 RAW=https://raw.githubusercontent.com/tttttianqiu-maker/windows-on-m1/$PIN/tools/j613/autoinstall
 for f in j613-install.cmd j613-jobs.cmd oobe-unattend.xml; do
     curl -fsSL "$RAW/$f" -o "/Volumes/WINSRC/$f" || die "download of $f failed"
@@ -60,6 +60,19 @@ if [ "$DRIVER" = 1 ]; then
     DIAG=$(find "$TMPD/x" -name AppleInputDiag.exe | head -1); [ -n "$DIAG" ] && cp "$DIAG" /Volumes/WINSRC/
     ls -la /Volumes/WINSRC/j613-drivers; rm -rf "$TMPD"
     say "driver staged (AppleMtpInput, test-signed)"
+    # DISM in WinPE only stages the package; PnP does not retry a device that
+    # Setup already marked "no driver" (Code 28, EXP-20261109-053). The first
+    # Windows boot runs j613-input-diag.cmd from the mailbox: trust the
+    # package's test signer, pnputil /add-driver /install, record the state.
+    mkdir -p /Volumes/WINSRC/j613-jobs/lib
+    for f in lib/j613-input-state.cmd lib/j613-input-snapshot.cmd j613-input-diag.cmd; do
+        curl -fsSL "$RAW/${f#lib/}" -o "/Volumes/WINSRC/j613-jobs/$f.tmp" || die "download of $f failed"
+        perl -pi -e 's/\r?\n/\r\n/' "/Volumes/WINSRC/j613-jobs/$f.tmp"
+        mv "/Volumes/WINSRC/j613-jobs/$f.tmp" "/Volumes/WINSRC/j613-jobs/$f"
+    done
+    grep -q "J613 input diag" /Volumes/WINSRC/j613-jobs/j613-input-diag.cmd || die "input job download failed"
+    rm -f /Volumes/WINSRC/j613-jobs/no-repair.flag /Volumes/WINSRC/j613-jobs/diag-input.txt
+    say "first Windows boot trusts the driver's signer and installs it (j613-input-diag.cmd)"
 else
     say "no driver this time (--no-driver): no driver injection, no test signing"
 fi

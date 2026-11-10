@@ -34,6 +34,16 @@ class PrepContract(unittest.TestCase):
         before = self.text.index('if [ "$DRIVER" = 1 ]')
         self.assertIn("rm -rf /Volumes/WINSRC/j613-drivers", self.text[:before])
 
+    def test_driver_staging_queues_the_install_job(self):
+        # DISM only stages the package; the first boot must install it (EXP-053)
+        driver = self.text.index('if [ "$DRIVER" = 1 ]')
+        job = self.text.index("j613-input-diag.cmd from the mailbox")
+        self.assertLess(driver, job)
+        for f in ("j613-input-diag.cmd", "j613-input-state.cmd", "j613-input-snapshot.cmd"):
+            self.assertIn(f, self.text)
+            self.assertTrue((AUTO / f).exists(), f)
+        self.assertIn("rm -f /Volumes/WINSRC/j613-jobs/no-repair.flag", self.text)
+
     def test_flags_are_one_shot_and_reset(self):
         self.assertIn("rm -f /Volumes/WINSRC/j613-reinstall.flag /Volumes/WINSRC/j613-fixsetup.flag",
                       self.text)
