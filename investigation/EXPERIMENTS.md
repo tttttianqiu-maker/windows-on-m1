@@ -8044,3 +8044,24 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
   14e4:4434", BAR sizes, "wlan: chip 4388 rev N". Failure modes: pcie_init
   error lines, "link did not come up", or an SError while touching the PCIe
   blocks (then `j613 wifi off`).
+
+### EXP-20261110-058 — built-in Wi-Fi, stage 3: firmware boot (planned, build 51)
+
+- Needs the Wi-Fi firmware from the Air's own macOS once: in macOS on the Air
+  run scripts/j613-wifi-fw.sh, copy the tarball to the Hackintosh's
+  ~/Downloads, `j613 wififw`. `j613 wifisel` then shows offline which files a
+  run would load (chip revision and OTP come from the last probe in hv.log).
+- Run: `j613 wifi boot` (implies the probe). Before the guest starts, m1n1
+  attaches to the BCM4388 (EROM cores, watchdog reset, RAM size, OTP), the host
+  picks the firmware like asahi-installer + brcmfmac (board apple,dnieper,
+  OTP module/vendor/version, antenna SKU from the ADT; exact stepping first,
+  Linux's 4388c0 second), converts the NVRAM like brcmf_fw_nvram_strip (MAC
+  from ADT /chosen mac-address-wifi0) and m1n1 downloads firmware + NVRAM +
+  random seed (+ signature if present) and starts the ARM.
+- Expected: "wlan: core ..." list with CR4 or CA7 + PCIe2 rev >= 64, "wlan: OTP
+  module=... vendor=... version=...", "wlan: firmware started after N ms",
+  "wlan: firmware up: shared at ..., PCIe protocol v6/7", "wlan: fw: ..."
+  console lines. Windows boots as before (nothing is exposed to it yet).
+- Failure modes: "firmware did not start" (wrong stepping/NVRAM or signature;
+  the console lines say why), SError on BAR access (link/BAR problem, then
+  `j613 wifi off`).
