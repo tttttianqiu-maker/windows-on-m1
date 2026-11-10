@@ -8065,3 +8065,36 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
 - Failure modes: "firmware did not start" (wrong stepping/NVRAM or signature;
   the console lines say why), SError on BAR access (link/BAR problem, then
   `j613 wifi off`).
+
+### EXP-20261110-059 — built-in Wi-Fi, stages 3b/4: rings, dongle init, WPA2 join (planned, build 51)
+
+- Recorded 2026-11-10 23:20 UTC. Supersedes the build number in EXP-058: build
+  51 is the first build with the firmware boot, so EXP-058 and this run are the
+  same run. Stages are sequential and each one only starts after the previous
+  one logged OK, so a run answers all of them up to the first failure.
+- Sources: Asahi linux brcmfmac pcie.c (ring info, ring descriptors, TCM
+  indices, scratch buffers, hostready, DAR doorbells, mailbox data),
+  commonring.c, msgbuf.c (message layouts, buffer posting, ioctl/event/RX/TX
+  paths), common.c (preinit dcmds, blob download), feature.c (join_ver),
+  fweh.c (event_msgs_ext), cfg80211.c (connect order, config_dongle,
+  brcmf_is_linkup with the firmware supplicant), join_param.c,
+  fwil_types.h (PMK struct 262 bytes, ext join v0/v1). m1n1 memory.c (the
+  unaligned dc_civac_range gap) and dart.c.
+- Build 51: m1n1 8fd10d0 (stage 3 eb5e4d6 + 3b/4 2b7bdad + size checks),
+  Mu unchanged (c0278d4 line, as build 50), root b113a78 + ledger. Artifact
+  and SHA-256 below once built.
+- Run: in macOS on the Air once, scripts/j613-wifi-fw.sh -> Hackintosh
+  ~/Downloads, `j613 wififw`; then `j613 wifi "<network>"` (prompts for the
+  password; stored in firmware/wifi-net, 0600, never logged), everything else
+  as the last good run. Windows boots as before; nothing is exposed to it yet.
+- Expected in `j613 input` (built-in Wi-Fi): PCIe link up, chip attached,
+  firmware running, "message rings set up", "control channel works" (first
+  ioctl answered: MAC from the ADT), "Wi-Fi interface up", then "CONNECTED to
+  <bssid>, RSSI ..." and, once Windows runs, "wlan: link UP" and a 60 s status
+  line with rx frames counting up (broadcast/multicast from the network).
+- Failure modes and what they mean: "no answer to the first ioctl" = rings or
+  doorbells wrong (DART fault line says whether DMA went outside the pool);
+  "network not found" = name/band/WPA2 mismatch (WPA3-only and 6 GHz-only
+  networks cannot work); "handshake failed: password wrong?" after both the
+  PMK and the passphrase attempt; SError or reset while the chip DMAs =
+  `j613 wifi off`. Evidence: hv.log ("wlan:" and "wlan: fw:" lines).
