@@ -8026,3 +8026,21 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
 - j613-ged-49 = build 48 + battery change events (CHG-031..033): GED BGED
   (ACPI0013) on vINTID 66, present only with `j613 battery on`. Same as 48 for
   every run with the battery off.
+
+### EXP-20261110-057 — built-in Wi-Fi, stage 2: PCIe link + chip id (planned, build 50)
+
+- Goal (owner, 2026-11-10): the Air's own Wi-Fi in Windows. No Windows driver
+  exists for Apple's Broadcom BCM4388 (Windows on Arm needs native Arm64
+  drivers; Apple never shipped Boot Camp for Apple Silicon), so m1n1 runs the
+  chip like Linux brcmfmac and Windows gets a virtual NIC. Stages: 1 hardware
+  map (`j613 wifiprobe`), 2 PCIe link + chip id (this), 3 firmware boot,
+  4 WPA2 join, 5 virtio-net for Windows + packet bridge.
+- Sources: Asahi linux t8122.dtsi / t8122-jxxx.dtsi / t8122-j613.dts (pcie0,
+  port00 PERST# AP GPIO 187, pwren SMC GPIO 13, wifi@0,0 = pci14e4,4434,
+  board-type apple,dnieper), drivers/pci/controller/pcie-apple.c, brcmfmac;
+  upstream m1n1 pcie.c (apcie,t8122).
+- Run: `j613 wifi probe`, everything else off/unchanged; the probe runs before
+  the guest starts. Expected "wlan: link up after N ms", "wlan: 01:00.0
+  14e4:4434", BAR sizes, "wlan: chip 4388 rev N". Failure modes: pcie_init
+  error lines, "link did not come up", or an SError while touching the PCIe
+  blocks (then `j613 wifi off`).
