@@ -198,8 +198,106 @@ static void test_queue(void)
     free(q.ring[1].slot);
 }
 
+/* Shaped like Apple keyboard descriptors (Magic Keyboard / MTP keyboard). */
+static const u8 apple_like_kbd[] = {
+    0x05, 0x01, 0x09, 0x06, 0xa1, 0x01, 0x85, 0x01,
+    0x05, 0x07, 0x19, 0xe0, 0x29, 0xe7, 0x15, 0x00, 0x25, 0x01, 0x75, 0x01, 0x95, 0x08, 0x81, 0x02,
+    0x95, 0x01, 0x75, 0x08, 0x81, 0x01,
+    0x95, 0x05, 0x75, 0x01, 0x05, 0x08, 0x19, 0x01, 0x29, 0x05, 0x91, 0x02, /* LEDs: output */
+    0x95, 0x01, 0x75, 0x03, 0x91, 0x01,
+    0x95, 0x06, 0x75, 0x08, 0x15, 0x00, 0x26, 0xff, 0x00, 0x05, 0x07, 0x19, 0x00, 0x2a, 0xff, 0x00,
+    0x81, 0x00,
+    0x05, 0x0c, 0x75, 0x01, 0x95, 0x01, 0x09, 0xb8, 0x15, 0x00, 0x25, 0x01, 0x81, 0x02, /* eject */
+    0x05, 0xff, 0x09, 0x03, 0x75, 0x01, 0x95, 0x01, 0x81, 0x02,                         /* Fn */
+    0x75, 0x06, 0x95, 0x01, 0x81, 0x01,
+    0xc0,
+    /* vendor collection with an oversized feature report (fixed up first) */
+    0x06, 0x00, 0xff, 0x09, 0x0f, 0xa1, 0x01, 0x85, 0x09, 0x09, 0x0f, 0x76, 0x00, 0x40, 0x95, 0x02,
+    0xb1, 0x02, 0xc0,
+};
+
+static void test_hid_scan(void)
+{
+    u8 d[sizeof(apple_like_kbd)];
+    u32 bits;
+    int fn;
+
+    memcpy(d, apple_like_kbd, sizeof(d));
+    assert(dchid_fixup_report_size(d, sizeof(d)) == 1);
+    assert(dchid_hid_scan(d, sizeof(d), 1, &bits, &fn));
+    assert(bits == 72 && 1 + (bits + 7) / 8 == DCHID_KBD_REPORT_LEN);
+    assert(fn == 65); /* byte 9, bit 1 */
+    /* 4-byte usage form of the Fn usage on page 0xff00 */
+    const u8 d2[] = {0x85, 0x01, 0x0b, 0x03, 0x00, 0x00, 0xff, 0x75, 0x01, 0x95, 0x01, 0x81, 0x02,
+                     0x75, 0x07, 0x81, 0x01};
+    assert(dchid_hid_scan(d2, sizeof(d2), 1, &bits, &fn) && fn == 0 && bits == 8);
+    /* no Fn usage */
+    assert(dchid_hid_scan(dchid_guest_kbd_desc, dchid_guest_kbd_desc_len, 1, &bits, &fn));
+    assert(fn == -1 && bits == 72);
+    /* other report ids do not count */
+    assert(dchid_hid_scan(d, sizeof(d), 9, &bits, &fn) && bits == 0 && fn == -1);
+    /* truncated item, pop without push */
+    const u8 bad1[] = {0x05};
+    const u8 bad2[] = {0xb4};
+    assert(!dchid_hid_scan(bad1, sizeof(bad1), 1, &bits, &fn));
+    assert(!dchid_hid_scan(bad2, sizeof(bad2), 1, &bits, &fn));
+}
+
+static void kbd(u8 *r, u8 k0, u8 k1)
+{
+    memset(r, 0, DCHID_KBD_REPORT_LEN);
+    r[0] = 1;
+    r[3] = k0;
+    r[4] = k1;
+}
+
+static void test_fn_layer(void)
+{
+    struct dchid_fn_state st;
+    u8 r[DCHID_KBD_REPORT_LEN];
+
+    memset(&st, 0, sizeof(st));
+    kbd(r, 0x2a, 0); /* Backspace alone */
+    dchid_kbd_fn_translate(&st, r, false);
+    assert(r[3] == 0x2a);
+    kbd(r, 0, 0);
+    dchid_kbd_fn_translate(&st, r, false);
+
+    kbd(r, 0x2a, 0); /* Fn + Backspace = Delete */
+    dchid_kbd_fn_translate(&st, r, true);
+    assert(r[3] == 0x4c);
+    kbd(r, 0x2a, 0); /* Fn released, Backspace still held: stays Delete */
+    dchid_kbd_fn_translate(&st, r, false);
+    assert(r[3] == 0x4c);
+    kbd(r, 0x2a, 0x50); /* + Left pressed without Fn: plain Left */
+    dchid_kbd_fn_translate(&st, r, false);
+    assert(r[3] == 0x4c && r[4] == 0x50);
+    kbd(r, 0, 0);
+    dchid_kbd_fn_translate(&st, r, false);
+    kbd(r, 0x2a, 0); /* after release, Backspace is Backspace again */
+    dchid_kbd_fn_translate(&st, r, false);
+    assert(r[3] == 0x2a);
+    kbd(r, 0, 0);
+    dchid_kbd_fn_translate(&st, r, false);
+
+    kbd(r, 0x52, 0x51); /* Fn+Up/Down = PgUp/PgDn */
+    dchid_kbd_fn_translate(&st, r, true);
+    assert(r[3] == 0x4b && r[4] == 0x4e);
+    kbd(r, 0x50, 0x4f); /* Fn+Left/Right = Home/End (new presses, Fn still held) */
+    dchid_kbd_fn_translate(&st, r, true);
+    assert(r[3] == 0x4a && r[4] == 0x4d);
+    kbd(r, 0x28, 0x04); /* Fn+Enter = Insert, letters unchanged */
+    dchid_kbd_fn_translate(&st, r, true);
+    assert(r[3] == 0x49 && r[4] == 0x04);
+    kbd(r, 0x01, 0); /* rollover error code untouched */
+    dchid_kbd_fn_translate(&st, r, true);
+    assert(r[3] == 0x01);
+}
+
 int main(void)
 {
+    test_hid_scan();
+    test_fn_layer();
     test_report_size_fixup_matches_linux();
     test_guest_keyboard_descriptor();
     test_iso_swap();

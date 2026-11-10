@@ -4,6 +4,7 @@
 #   j613 again   run the current build again (watcher must be running)
 #   j613 probe   read-only MTP power probe (Air at "Running proxy...", watcher stopped)
 #   j613 log     input-related lines from the last run's hv.log
+#   j613 input   verdict: keyboard/trackpad from m1n1 to the Windows driver
 #   j613 hv      last 60 lines of hv.log
 #   j613 build N build m1n1 natively (no Docker), reuse Mu -> ~/Downloads/j613-N.tar.gz
 #   j613 mtp off|on  skip / allow the keyboard+trackpad (MTP) bring-up in m1n1
@@ -19,7 +20,8 @@ case "${1:-help}" in
     watch) exec sh scripts/j613-autorun.sh ;;
     again) mkdir -p runs && touch runs/.go && echo "re-run requested: the watcher starts it once the Air is at Running proxy..." ;;
     probe) git pull -q; exec sh scripts/j613-probe-mtp.sh ;;
-    log)   grep -E "hv_mtp|dchid|rtkit" hv.log | tail -40 ;;
+    log)   grep -a -E "hv_mtp|dchid|rtkit" hv.log | tail -40 ;;
+    input) shift; exec sh scripts/j613-input.sh "$@" ;;
     hv)    tail -60 hv.log ;;
     build) shift; exec sh scripts/j613-build-m1n1.sh "$@" ;;
     mtp)   mkdir -p firmware
@@ -52,5 +54,5 @@ case "${1:-help}" in
     setup) mkdir -p "$HOME/bin" && ln -sf "$ROOT/scripts/j613" "$HOME/bin/j613" &&
            { grep -q 'HOME/bin' "$HOME/.zshrc" 2>/dev/null || echo 'export PATH="$HOME/bin:$PATH"' >> "$HOME/.zshrc"; } &&
            echo "done: open a new terminal and type  j613" ;;
-    *)     sed -n 3,15p "$0" | sed 's/^# *//' ;;
+    *)     sed -n 3,16p "$0" | sed 's/^# *//' ;;
 esac

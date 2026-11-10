@@ -1,0 +1,6 @@
+TTY> dchid: trackpad firmware staged (123456 bytes)
+TTY> dchid: AVHD device at 0x5300000000, GSIV 65
+TTY> dchid: sending 70000 bytes of trackpad firmware (dva 0x4000, power method 1)
+TTY> dchid: trackpad not ready after firmware
+TTY> dchid: bring-up done after 3000 ms (keyboard ready, trackpad absent)
+HV SError: L2C_ERR_ADR 0x103fbbdc140
