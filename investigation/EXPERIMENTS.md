@@ -8107,9 +8107,10 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
 
 ### EXP-20261110-060 — built-in Wi-Fi, stage 5: the Windows adapter (planned, build 52)
 
-- Recorded 2026-11-10 23:45 UTC. Build 52 = build 51 + stage 5 (CHG-042..048):
-  m1n1 47da099 (virtio-net 00:01.0 hv_vnet.c, allmulti), Mu 3ed50fd (_PRT dev1 ->
-  GSIV 67), root after 5cca073. Artifact and SHA-256 below once built. Includes
+- Recorded 2026-11-10 23:45 UTC. Build 52 = build 51 + stage 5 (CHG-042..050):
+  m1n1 6cc135d (virtio-net 00:01.0 hv_vnet.c, allmulti, TX flow control, flowring
+  per association), Mu 3ed50fd (_PRT dev1 -> GSIV 67), root after e131c69.
+  Artifact and SHA-256 below once built. Includes
   everything EXP-059 tests; if 52 misbehaves where 51 did not, the adapter is the
   difference (`j613 wifi off` removes it: 00:01.0 only exists with the Wi-Fi up).
 - Sources: OASIS virtio 1.2 (4.1 PCI transport, 2.7 split rings, 5.1 net device);
