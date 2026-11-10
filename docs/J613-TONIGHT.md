@@ -7,8 +7,8 @@ where it says "on the Air".
 
 1. Download the newest build into `~/Downloads` and delete older
    `j613-*.tar.gz` there: the watcher always runs the newest tarball.
-   - `j613-kbdlight-47.tar.gz` (m1n1 9602b57, Mu f469884): use this one for
-     every run below.
+   - `j613-safe-48.tar.gz` (m1n1 9602b57, Mu 511d7e0): use this one for
+     every run below. Same as 47 plus an emergency off switch (below).
    - Already started run 1 with 44 or 45? Fine, finish it; use 47 after.
 2. `j613 pull` (brings `j613 battery`, `j613 kbdlight`, `j613 input`, the
    clock hand-over and this file). If it complains about divergent branches:
@@ -34,7 +34,7 @@ j613 battery off
 j613 status
 ```
 
-Expected: next build `j613-kbdlight-47`, MTP on, trackpad fw present, Air
+Expected: next build `j613-safe-48`, MTP on, trackpad fw present, Air
 screen on, USB reset off, battery off, kbdlight off, watcher running (`j613
 watch` in its own Terminal if not).
 
@@ -109,6 +109,7 @@ a `kbdlight:` line: `j613 kbdlight off` and paste the output.
 | `the Windows driver never touched the device` | Windows side: one macOS visit, below |
 | everything `[ok]` but Windows ignores keys or the cursor | Windows HID side: one macOS visit, below |
 | battery `[FAIL]` | `j613 battery off`, paste the output |
+| Windows blue-screens or restarts over and over once the keyboard driver starts | `j613 mtp off`, `j613 again`: hides the keyboard device so the driver does not load (build 48+), then paste `j613 input` |
 
 One macOS visit (on the Air, in macOS; prints what Windows recorded, then stages
 a boot-time diagnose + repair job that never shuts Windows down):

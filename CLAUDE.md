@@ -30,7 +30,8 @@ This file is the operational state for an agent running **on the Hackintosh**
 - `j613 log`    MTP/DockChannel lines of `hv.log`; `j613 hv` tail of `hv.log`
 - `j613 probe`  read-only MTP power/ADT probe (Air at proxy, watcher stopped)
 - `j613 status` next tarball the watcher will run + all switches (check before every run)
-- `j613 mtp off|on`, `j613 screen on|off` (Windows on the Air's panel, build 39+),
+- `j613 mtp off|on` (off also hides the AVHD device from Windows, build 48+:
+  escape hatch if AppleMtpInput crashes Windows), `j613 screen on|off` (Windows on the Air's panel, build 39+),
   `j613 usb reset|normal` (experimental Linux-ordered guest USB reset, build 40+),
   `j613 battery on|off` (experimental Windows battery from the SMC, build 44+),
   `j613 kbdlight on [0-8]|off` (experimental keyboard backlight, Fn+F5/F6, build 47+)

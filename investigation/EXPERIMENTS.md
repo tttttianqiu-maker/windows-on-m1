@@ -8010,3 +8010,10 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
   "no /arm-io/fpwm1" or "Linux t8122.dtsi says ..." = ADT differs, nothing
   written. Watch for an SError right after "kbdlight:" (wrong block or power
   domain): `j613 kbdlight off`.
+
+### Build 48 (artifact only)
+
+- j613-safe-48 = build 47 + the AVHD escape hatch (CHG-029/030): `j613 mtp off`
+  now also hides the keyboard/trackpad ACPI device, so Windows does not load
+  AppleMtpInput. Use if Windows crashes or reboots in a loop once the driver
+  starts (EXP-054). Expected Mu log: "ACPI: AVHD (APPL0613) hidden by the host".
