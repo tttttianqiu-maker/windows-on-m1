@@ -1,19 +1,22 @@
-# J613: keyboard + trackpad run (EXP-20261109-053)
+# J613: keyboard + trackpad run (EXP-20261110-054, build 43)
 
 One run, about 10 minutes. Everything happens on the Hackintosh except where it
 says "on the Air".
 
 ## 0. Build and repo
 
-1. Download `j613-kbdfix-42.tar.gz` into `~/Downloads`. If `j613-kbdfix-41.tar.gz`
-   is there too, delete it: the watcher always runs the newest tarball.
+1. Download `j613-newdev-43.tar.gz` into `~/Downloads` and delete older
+   `j613-kbdfix-4*.tar.gz` there: the watcher always runs the newest tarball.
 2. `j613 pull` (brings `j613 input` and this file). If it complains about
    divergent branches (patches from 2026-11-09 applied by hand), the remote
    already has those commits: `git fetch && git reset --hard origin/j613-bringup
    && git submodule update --init` (firmware/ and runs/ are untracked and stay).
 
-Build 42 = m1n1 5df3acb + Mu c0cd337 (same Mu as builds 40/41). The Windows
-driver is the one already installed; no WinPE pass, no macOS boot.
+Build 43 = m1n1 5df3acb + Mu 4766076. The only change from build 42: the
+keyboard/trackpad ACPI device has a new `_UID`, so Windows sees new hardware
+and installs the AppleMtpInput driver it already has in its driver store (EXP-053
+showed Windows never started the driver on the old device, which Setup had
+marked "no driver"). No WinPE pass, no macOS boot.
 
 ## 1. Switches
 
@@ -23,7 +26,7 @@ mv firmware/tpmtfw-j613.bin.off firmware/tpmtfw-j613.bin
 j613 status
 ```
 
-Expected: next build `j613-kbdfix-42`, MTP on, trackpad fw present, Air screen on,
+Expected: next build `j613-newdev-43`, MTP on, trackpad fw present, Air screen on,
 USB reset off, watcher running (`j613 watch` in its own Terminal if not).
 
 ## 2. Run
@@ -35,6 +38,10 @@ runs it once and Windows shuts itself down about a minute after the desktop
 ("j613 diag done"). That is expected: `j613 again` once more.
 
 ## 3. Try
+
+Windows installs the driver for the "new" device in the background after boot:
+give it about 2 minutes at the desktop (or the sign-in screen) before you judge
+the keyboard. A "setting up a device" notification is a good sign.
 
 - Keyboard: Cmd (⌘) is the Windows key, Option is Alt. Type into the Start
   search. Fn+Backspace = Delete, Fn+Enter = Insert, Fn+arrows = PgUp/PgDn/

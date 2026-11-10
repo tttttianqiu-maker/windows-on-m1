@@ -82,9 +82,11 @@ Open, in priority order:
    input in Windows. m1n1 ae2af33 (CHG-20261109-010) sanitizes what the guest
    gets (Linux descriptor fixup, plain guest keyboard descriptor, ISO swap,
    trackpad report trim, queue fixes) and logs guest AVHD use ("dchid: avhd");
-   m1n1 5df3acb adds the hid-apple Fn layer. Next: EXP-053 with build 42
-   (docs/J613-TONIGHT.md): trackpad firmware back, verdict `j613 input`;
-   Windows-side failures: scripts/j613-windows-diag.sh (one macOS visit).
+   m1n1 5df3acb adds the hid-apple Fn layer. EXP-053 (build 42): m1n1 side
+   all OK (keyboard, trackpad 12194x7408, ISO), but Windows never started the
+   driver (Setup left ACPI\APPL0613\0 at Code 28; DISM-staged package not
+   retried). Next: EXP-054 with build 43 (Mu 4766076: AVHD _UID 0x613 = new
+   devnode), docs/J613-TONIGHT.md; fallback scripts/j613-windows-diag.sh.
 4. USB under Windows: cause understood (Linux dwc3-apple.c: one connect event
    per PHY+DWC3 init; eUSB2 repeater reset by the PD chip). Build 40 logs the
    AIC level of the xHCI IRQ and has `j613 usb reset` (Linux-ordered reset).

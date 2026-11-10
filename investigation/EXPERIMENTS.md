@@ -7925,3 +7925,33 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
 - Failure split: no MAGIC read = driver never started (Windows/PnP side:
   mailbox diag job, one macOS visit); MAGIC but no DESC_LEN = keyboard not
   ready in STATUS; pops but no input = Windows HID side (descriptor dump).
+
+### EXP-20261109-053 — result (build 42, 2026-11-10 ~12:40 UTC)
+
+- Build 42 (m1n1 5df3acb, Mu c0cd337), MTP on, trackpad firmware present,
+  screen on, USB reset off. Owner: trackpad clicks (haptics), no key or
+  cursor effect in Windows.
+- `j613 input`: AVHD page mapped; keyboard up in m1n1; "keyboard layout code
+  1 (ISO)"; 22 keyboard reports reached m1n1; trackpad up: 12194 x 7408
+  (1/100 mm), x -5787..6256, y -157..7102 (same as EXP-045); no SError.
+  [FAIL] the Windows driver never touched the device: no MAGIC read, i.e.
+  AppleMtpInput never ran PrepareHardware.
+- Analysis: J313 only ever ran the driver after trusting the catalog signer
+  and `pnputil /add-driver /install` on a live system (its APPL0001 sat at
+  Code 28 until then). J613 Windows Setup (build 39 reinstall) enumerated
+  ACPI\APPL0613\0 with no driver (Code 28); the WinPE postcfg only staged
+  the package offline (DISM /forceunsigned), which PnP does not retry on an
+  existing failed devnode. INF identical to the proven J313 INF apart from
+  names; driver binary test-signed ARM64, KMDF 1.33 like J313.
+- Next: EXP-20261110-054 (new devnode via _UID); fallback unchanged
+  (scripts/j613-windows-diag.sh: trust signer + pnputil install at boot).
+
+### EXP-20261110-054 — keyboard + trackpad, build 43 (new AVHD _UID) (planned)
+
+- Build 43 (j613-newdev-43, m1n1 5df3acb, Mu 4766076 = c0cd337 + AVHD
+  `_UID 0x613`, root ccbf94e, clean). Same switches as EXP-053.
+- Hypothesis: ACPI\APPL0613\1555 is new hardware to PnP, which installs the
+  staged AppleMtpInput package from the driver store without a prompt.
+- Expected: "avhd guest read MAGIC" within a few minutes of the desktop, then
+  keyboard/trackpad. If not, the macOS fallback (j613-windows-diag.sh) also
+  covers the new devnode (pnputil /install applies to all matching devices).
