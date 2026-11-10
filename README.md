@@ -1,123 +1,103 @@
-# Windows 11 ARM64 on the M1 MacBook Air
+# Windows 11 ARM64 on the M3 MacBook Air
 
-Experimental native Windows boot for the 2020 M1 MacBook Air (`j313`, Apple T8103), built
-from a Project Mu firmware fork and an m1n1 EL2 hypervisor fork.
+Experimental native Windows 11 boot for the 2024 13" M3 MacBook Air (`j613`, Apple T8122),
+built from a Project Mu UEFI firmware fork and an m1n1 EL2 hypervisor fork.
 
-> **Warning:** This project exposes the internal SSD to experimental firmware and a custom
-> NVMe bridge. A wrong `diskpart` command can destroy macOS, Recovery, or the Asahi boot
-> environment. Keep a complete backup and read the entire installation guide before making
-> disk changes.
+This is a fork of [arditspark/windows-on-m1](https://github.com/arditspark/windows-on-m1),
+which got Windows 11 running on the M1 MacBook Air (`j313`). This fork ports that work to the M3.
+The J313 sources are kept as close to upstream as possible.
 
-## Current status
+> **Active work is on the [`j613-bringup`](../../tree/j613-bringup) branch.** `main` is still
+> the unmodified upstream J313 (M1) code plus this README.
 
-Windows 11 ARM64 has booted from the internal Apple SSD, completed OOBE with a local
-account, reached the desktop, accepted USB keyboard and mouse input, and sustained an RDP
-session long enough to install software. The current validated assisted configuration exposes:
+> **Warning:** This project runs experimental firmware against the internal SSD. A wrong
+> `diskpart` command can destroy macOS, Recovery, or the Asahi boot environment. Keep a full
+> backup. This is not a general Apple Silicon Windows installer.
 
-- all eight M1 CPU cores: four Icestorm efficiency cores and four Firestorm
-  performance cores, with distinct Windows efficiency and scheduling classes;
-- a synthetic PCIe NVMe controller backed by the physical Apple ANS storage device;
-- physical USB xHCI with keyboard, mouse, hubs, and installation media;
-- native built-in Apple keyboard and Precision Touchpad through the J313 SPI-HID driver;
-- a Project Mu GOP framebuffer and a remotely observable virtual framebuffer;
-- virtual UART and Windows kernel-debug transport for assisted development.
+## Current status (2026-11-10)
 
-The eight-core assisted checkpoint reached the lock screen inside the hardware boot gate,
-completed bounded load on all processors, remained responsive during independent SSH probes,
-and retained healthy built-in keyboard and Precision Touchpad devices. It is still an
-experimental checkpoint: standalone cold boot, suspend/resume, long-duration thermal stress,
-and GPU acceleration remain separate qualification gates.
+Status labels follow the upstream rules: **validated** = seen working on the development Air,
+**implemented** = in source and host-tested but not yet confirmed on hardware,
+**planned** = not implemented yet.
 
-**GPU acceleration (work in progress, assisted mode only).** On 2026-10-05 the Windows
-desktop was, for the first time, composed by DWM through this project's own Apple AGX
-driver stack (a WDDM 3.2 kernel-mode driver plus a Mesa-based D3D10 user-mode driver) and
-scanned out by the Apple display coprocessor (DCP): wallpaper, desktop icons, and the
-taskbar render correctly on the internal panel. It is not usable yet: every GPU job
-currently takes 35–325 ms, so a full-screen redraw takes about 30 seconds and areas that
-have not been redrawn stay black. This requires the assisted m1n1 hypervisor launch and is
-developed on `feature/j313-gpu-acceleration`, not on `main`.
+### Validated on the J613
 
-Only `j313` is currently supported. This is not a general Apple Silicon Windows installer.
+- Windows 11 Pro ARM64 installed to the internal SSD and booting to the desktop
+  (assisted mode only, see below). OOBE runs unattended.
+- All eight CPU cores (4 efficiency + 4 performance) brought up under the hypervisor.
+- Display: Windows on a virtual framebuffer streamed to the host, and mirrored onto the
+  Air's own panel (`j613 screen on`, build 39+). The M3 display coprocessor rejects a new
+  surface, so there is no real display driver, no brightness control, and no GPU acceleration.
+- Built-in keyboard and trackpad **on the m1n1 side**: the MTP coprocessor boots, keyboard
+  reports arrive, the trackpad firmware loads and the haptic click works. ISO layout is detected.
 
-## Development branches
+### Implemented, hardware check pending
 
-| Branch | Purpose | State |
+- Windows keyboard/trackpad driver (`AppleMtpInput`, ACPI `APPL0613`). The driver package
+  installs, but Windows has not started it yet (Code 28 on the old devnode). Build 43+ gives
+  the device a new `_UID` so PnP installs it fresh; that run is in progress.
+- Fn layer and top-row media keys (build 44+).
+- Battery and charger status in Windows from the SMC, read-only (`j613 battery on`, build 44+),
+  with change events through an ACPI GED (build 49+).
+- Correct Windows clock taken from the host (build 47+).
+- Keyboard backlight with Fn+F5/F6 (`j613 kbdlight on`, build 47+).
+- Fix for the SErrors seen with the trackpad: m1n1 now unmaps the T8122 TrustZone carveouts.
+
+### Not working yet
+
+- USB ports under Windows (they work in UEFI/Setup). Root cause understood, an ordered reset
+  is implemented as `j613 usb reset`.
+- Standalone boot without the host Mac (the on-disk image still falls back to proxy mode).
+- Sleep (disabled, it shut the machine down), Wi-Fi (hardware probe and PCIe
+  bring-up written, not run yet), Bluetooth, audio, webcam, GPU.
+
+## How it runs (assisted mode)
+
+iBoot → Asahi stub m1n1 (proxy over USB) → the host's `run_uefi.py` chainloads this m1n1
+build → m1n1 hypervisor → Project Mu UEFI (`J613_EFI.fd`) → Windows Boot Manager → Windows.
+
+A second Mac (here an Intel Hackintosh) sits on the Air's USB-C port, sends each build,
+and captures UART, hypervisor logs, the framebuffer and Windows KD traffic.
+
+## Building
+
+```sh
+git clone --recurse-submodules -b j613-bringup https://github.com/tttttianqiu-maker/windows-on-m1
+cd windows-on-m1
+
+# Full build (Linux, or macOS with the cross toolchain; Mu needs Docker on macOS)
+BOARD=j613 sh scripts/build-development.sh --display virtual --debug uart
+# -> dist/j613/debug-uart/ (MANIFEST.json, SHA256SUMS)
+
+# m1n1-only build on macOS without Docker (reuses the installed Mu firmware)
+sh scripts/j613 build <name>
+```
+
+The `scripts/j613` helper covers the day-to-day loop: `watch` (run the newest build),
+`again`, `status`, `log`, `input`, and the experimental switches (`mtp`, `screen`, `usb`,
+`battery`, `kbdlight`, `wifi`). See [`CLAUDE.md`](../../blob/j613-bringup/CLAUDE.md).
+
+## Documentation (on `j613-bringup`)
+
+- [J613 handoff: full history and technical detail](../../blob/j613-bringup/docs/J613-HANDOFF.md)
+- [J613 research notes: USB, display, standalone, wishlist](../../blob/j613-bringup/docs/J613-RESEARCH-2026-11-09.md)
+- [Experiment ledger](../../blob/j613-bringup/investigation/EXPERIMENTS.md) and
+  [change ledger](../../blob/j613-bringup/investigation/CHANGES.csv): every hardware run
+  and every change, with EXP/CHG ids
+- Upstream J313 docs: [`documentation/`](documentation/)
+
+## Repositories
+
+| Repo | Role | Branch |
 | --- | --- | --- |
-| `main` | Published platform baseline and documentation | Eight CPU cores, NVMe, USB, built-in keyboard and touchpad; GOP framebuffer only |
-| `feature/j313-gpu-acceleration` | AGX GPU driver (KMD + Mesa UMD), DCP scanout, GPU VA broker in m1n1 | Active. First correct GPU-composed desktop; per-job latency is the current blocker |
-| `feature/j313-native-input` | Built-in SPI-HID keyboard and Precision Touchpad | Validated checkpoint, merged into `main` |
-| `feature/j313-4e4p-cpu-stability` | Eight-core (4E+4P) bring-up | Validated, merged into `main` |
-| `feature/j313-cpu-stability`, `feature/j313-4e2p-cpu-stability`, `feature/j313-4e3p-cpu-stability` | Incremental P-core bring-up (4E+1P … 4E+3P) | Historical validated checkpoints |
-| `stable/j313-4e-baseline` | Frozen four-efficiency-core baseline | Historical recovery reference |
-| `codex/*` | Earlier stability and release-preparation snapshots | Historical |
+| [windows-on-m1](https://github.com/tttttianqiu-maker/windows-on-m1) | Build scripts, Windows drivers, host tools, docs | `j613-bringup` |
+| [m1n1_windows](https://github.com/tttttianqiu-maker/m1n1_windows) | Hypervisor/bootloader (MTP, DockChannel HID, battery, mirror) | `j613-bringup` |
+| [apple_silicon_platforms_mu](https://github.com/tttttianqiu-maker/apple_silicon_platforms_mu) | Project Mu UEFI firmware with the J613 platform | `j613-bringup` |
 
-The submodule forks follow the same naming: [`m1n1_windows`](https://github.com/paulsmir/m1n1_windows)
-and [`apple_silicon_platforms_mu`](https://github.com/paulsmir/apple_silicon_platforms_mu)
-carry the matching GPU work on their own `feature/j313-gpu-acceleration` branches, and the
-root branch pins the exact submodule commits it was tested with. Every hardware run on the
-GPU branch is recorded in `investigation/EXPERIMENTS.md` and indexed in
-`investigation/CHANGES.csv`.
+## Credits
 
-## Two operating modes
-
-1. **Standalone mode:** iBoot loads an Asahi-provisioned boot entry, m1n1 starts the embedded
-   Mu firmware, and Mu starts Windows from the internal SSD. A second computer is not part
-   of the runtime path.
-2. **Assisted development mode:** another Mac chainloads matching m1n1 and Mu builds over
-   USB and captures UART, hypervisor logs, framebuffer updates, telemetry, and KD traffic.
-   This mode can test firmware and driver changes without rewriting the Air ESP.
-
-## Documentation
-
-- [Standalone installation](documentation/INSTALL.md)
-- [Build and packaging](documentation/BUILD.md)
-- [Standalone and assisted operation](documentation/RUN.md)
-- [Launch profiles](documentation/CONFIGURATION.md)
-- [Architecture](documentation/ARCHITECTURE.md)
-- [Platform roadmap and milestone gates](documentation/ROADMAP.md)
-- [Current stability checkpoint and iteration workflow](documentation/PLATFORM_STABILITY.md)
-- [Validated J313 four-efficiency-core baseline](documentation/STABLE_4E_BASELINE.md)
-- [Validated J313 eight-core and native-input checkpoint](documentation/STABLE_8CORE_INPUT.md)
-- [Debugging and KD tools](documentation/DEBUGGING.md)
-- [Engineering history](documentation/DEVELOPMENT_HISTORY.md)
-- [Historical artifact provenance](documentation/history/ARTIFACT_PROVENANCE.md)
-- [Known limitations](documentation/LIMITATIONS.md)
-- [Built-in Apple keyboard and Precision Touchpad](documentation/APPLE_INPUT.md)
-- [Changelog](CHANGELOG.md)
-
-## Repository layout
-
-- `m1n1_windows/` — pinned hypervisor fork submodule.
-- `mu/` — pinned Apple Silicon Project Mu fork submodule.
-- `scripts/` — public build, ESP-install, standalone, and assisted-mode entry points.
-- `tools/` — deterministic layout and image-packaging tools.
-- `config/j313-guest-layout.json` — canonical guest physical-memory contract.
-- `run_uefi.py` — Python-assisted guest launcher used for development.
-- `tools/kd/` — focused Windows serial kernel-debug utilities.
-- `extra/` — framebuffer, UART, and source-level diagnostic helpers.
-
-## Upstream projects
-
-This work builds on [Asahi Linux](https://asahilinux.org/),
-[m1n1](https://github.com/AsahiLinux/m1n1),
-[Project Mu](https://github.com/microsoft/mu), and the Apple Silicon Windows work from
-[NT-for-ASi](https://github.com/NT-for-ASi). The active source forks are
-[paulsmir/m1n1_windows](https://github.com/paulsmir/m1n1_windows) and
-[paulsmir/apple_silicon_platforms_mu](https://github.com/paulsmir/apple_silicon_platforms_mu).
-See the submodule histories and licenses for their respective copyrights and terms.
-
-## Release truthfulness
-
-Documentation distinguishes three states:
-
-- **validated:** observed on the development J313;
-- **implemented:** present in source and host-tested but awaiting the relevant hardware run;
-- **planned:** not yet implemented.
-
-The physical internal-panel handoff, full-panel 2560x1600 Windows framebuffer, all four
-Icestorm and all four Firestorm guest CPUs, synthetic NVMe bridge, physical USB, and the
-test-signed built-in Apple keyboard and Precision Touchpad driver have been validated together
-in the assisted J313 checkpoint. GPU acceleration remains an implementation milestone.
-
-Native built-in input build, installation, diagnostics, and rollback are documented in
-[`documentation/APPLE_INPUT.md`](documentation/APPLE_INPUT.md).
+Built on [arditspark/windows-on-m1](https://github.com/arditspark/windows-on-m1) (the M1 port),
+[Asahi Linux](https://asahilinux.org/) (hardware documentation, `t8122` device trees, drivers),
+[m1n1](https://github.com/AsahiLinux/m1n1), [Project Mu](https://github.com/microsoft/mu) and
+[NT-for-ASi](https://github.com/NT-for-ASi). See the submodule histories and licenses for
+their copyrights and terms.
