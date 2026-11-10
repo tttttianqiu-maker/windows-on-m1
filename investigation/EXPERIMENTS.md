@@ -8109,8 +8109,12 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
 
 - Recorded 2026-11-10 23:45 UTC. Build 52 = build 51 + stage 5 (CHG-042..050):
   m1n1 6cc135d (virtio-net 00:01.0 hv_vnet.c, allmulti, TX flow control, flowring
-  per association), Mu 3ed50fd (_PRT dev1 -> GSIV 67), root after e131c69.
-  Artifact and SHA-256 below once built. Includes
+  per association), Mu 3ed50fd (_PRT dev1 -> GSIV 67), root 78bbb73.
+  j613-wifi-52.tar.gz SHA-256 3544a8edc124315945844ca7809926142ec939058fa93ea5
+  84107f0cedf7832f; MANIFEST debug / virtual / uart, source_dirty false;
+  m1n1.macho b94f65cf..., J613_EFI.fd 2ed4e8d2..., boot.bin 002f8856...; built
+  like build 51. The built DSDT (iasl -d of DSDT.aml) has the _PRT pair
+  {0xFFFF,0,0,0x40} {0x0001FFFF,0,0,0x43}. Recovery: `j613 wifi off` or build 51. Includes
   everything EXP-059 tests; if 52 misbehaves where 51 did not, the adapter is the
   difference (`j613 wifi off` removes it: 00:01.0 only exists with the Wi-Fi up).
 - Sources: OASIS virtio 1.2 (4.1 PCI transport, 2.7 split rings, 5.1 net device);
