@@ -7955,3 +7955,24 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
 - Expected: "avhd guest read MAGIC" within a few minutes of the desktop, then
   keyboard/trackpad. If not, the macOS fallback (j613-windows-diag.sh) also
   covers the new devnode (pnputil /install applies to all matching devices).
+- Builds 44/45 are supersets and may run this experiment instead (same _UID,
+  battery off by default): build 44 (j613-media-batt-44, m1n1 641ec3b, Mu
+  5b3ed9f, root dcdd70a, clean) adds Fn + top row media keys (CHG-017);
+  build 45 (m1n1 97af25a, Mu c0278d4, root c427217) only changes the battery
+  path (CHG-021/022). Record which build ran.
+
+### EXP-20261110-055 — Windows battery (planned, after EXP-054)
+
+- Build 45 (or 44), `j613 battery on`, everything else as the last good
+  keyboard run. One variable: the battery.
+- m1n1 reads the SMC (BUIC, B0FC, B0DC, B0AV, B0AC, B0CT, CHIS, BNCB, Linux
+  macsmc-power keys) before the guest starts and every 60 s, read-only, and
+  quiesces the SMC RTKit after each read as hv_dchid does. Windows' inbox
+  cmbatt reads BAT0/ADP1 from the AVHD page.
+- Expected: battery icon with the macOS percentage, plugged-in state
+  following the charger (with a delay: no ACPI notifications yet, Windows
+  polls); `j613 input` battery section all [ok]; "Windows reads after ..."
+  gives the poll interval for _BST.
+- Watch: hitches every 60 s (SMC boot handshake on the interruptible CPU,
+  1 s timeouts per step), "read kept back" lines, any reset. Abort switch:
+  `j613 battery off`.

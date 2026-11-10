@@ -31,7 +31,9 @@ This file is the operational state for an agent running **on the Hackintosh**
 - `j613 probe`  read-only MTP power/ADT probe (Air at proxy, watcher stopped)
 - `j613 status` next tarball the watcher will run + all switches (check before every run)
 - `j613 mtp off|on`, `j613 screen on|off` (Windows on the Air's panel, build 39+),
-  `j613 usb reset|normal` (experimental Linux-ordered guest USB reset, build 40+)
+  `j613 usb reset|normal` (experimental Linux-ordered guest USB reset, build 40+),
+  `j613 battery on|off` (experimental Windows battery from the SMC, build 44+)
+- `j613 input`  one-line verdicts for keyboard/trackpad (+ battery) from `hv.log`
 - Build (Linux or macOS with the cross toolchain):
   `BOARD=j613 sh scripts/build-development.sh --display virtual --debug uart`
   -> `dist/j613/debug-uart/` (MANIFEST.json, SHA256SUMS); package as
@@ -85,8 +87,12 @@ Open, in priority order:
    m1n1 5df3acb adds the hid-apple Fn layer. EXP-053 (build 42): m1n1 side
    all OK (keyboard, trackpad 12194x7408, ISO), but Windows never started the
    driver (Setup left ACPI\APPL0613\0 at Code 28; DISM-staged package not
-   retried). Next: EXP-054 with build 43 (Mu 4766076: AVHD _UID 0x613 = new
-   devnode), docs/J613-TONIGHT.md; fallback scripts/j613-windows-diag.sh.
+   retried). Next: EXP-054 with build 45 (or 43/44; Mu 4766076+: AVHD _UID
+   0x613 = new devnode), docs/J613-TONIGHT.md; fallback
+   scripts/j613-windows-diag.sh. Build 44+ also has Fn + top row media keys
+   (m1n1 481eb50) and the opt-in battery (m1n1 641ec3b/97af25a, Mu
+   5b3ed9f/c0278d4: BAT0/ADP1 on the AVHD page, SMC read-only every 60 s,
+   bad reads never reach Windows); battery run = EXP-055 after EXP-054.
 4. USB under Windows: cause understood (Linux dwc3-apple.c: one connect event
    per PHY+DWC3 init; eUSB2 repeater reset by the PD chip). Build 40 logs the
    AIC level of the xHCI IRQ and has `j613 usb reset` (Linux-ordered reset).
