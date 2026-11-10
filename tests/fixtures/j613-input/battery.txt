@@ -1,0 +1,24 @@
+TTY> dchid: trackpad firmware staged (123456 bytes)
+TTY> dchid: AVHD device at 0x5300000000, GSIV 65
+TTY> dchid: keyboard layout code 1 (ISO), swapping ` and <> like Linux hid-apple
+TTY> dchid:   keyboard HID descriptor 600 bytes (2 oversized report-size items fixed)
+TTY> dchid: sending 70000 bytes of trackpad firmware (dva 0x4000, power method 1)
+TTY> dchid: trackpad 13000 x 8200 (1/100 mm), x -6500..6500 y -4100..4100
+TTY> dchid: bring-up done after 900 ms (keyboard ready, trackpad ready)
+TTY> dchid: keyboard report #1 len 10: 01 08 00 00 00 00 00 00 00 00
+TTY> dchid: avhd guest read MAGIC (AppleMtpInput PrepareHardware ran)
+TTY> dchid: avhd guest read STATUS (driver readiness poll)
+TTY> dchid: avhd guest read keyboard DESC_LEN (loading descriptor)
+TTY> dchid: avhd guest read DIMS (driver loading the trackpad)
+TTY> dchid: avhd guest enabled GSIV 65 in the vGIC
+TTY> dchid: avhd guest IRQ ack (driver transport started)
+TTY> dchid: avhd guest popped its first report (driver drains input)
+TTY> dchid: trackpad report len 248, 1 fingers: trimmed to 68
+TTY> dchid: avhd stats magic=1 status=40 desc_len=1 desc_win=26 dims=1 rx_len=900 pops=850 acks=300 sel=3 irq_en=1 injected=300 queued=0 drops=0 mt_trim=4 mt_bad=0
+TTY> battery: Windows battery ON (SMC read-only, 60 s refresh)
+TTY> battery: #1 81% AC charging fcc 4398 mAh design 4562 mAh 1210 mA 12650 mV cycles 57 cells 3 (keys 11111111)
+TTY> battery: Windows read the battery flags (_STA) the first time (81%)
+TTY> battery: Windows read _BST the first time (81%)
+TTY> battery: read kept back (BUIC FAILED 0, FCC ok 4398, CHIS ok), Windows keeps 81% (held 1)
+TTY> battery: #3 82% battery  fcc 4398 mAh design 4562 mAh -730 mA 12400 mV cycles 57 cells 3 (keys 11111111)
+TTY> battery: Windows reads after 180 s: flags 14, _BST 6 (last 25 s ago), _BIX 1

@@ -42,8 +42,25 @@ else
 fi
 first "dchid: trackpad report .* (trimmed|unusable|dropped)" 2 | sed 's/^.*dchid: /  [..]   /'
 
-B1=$(last "battery: #|battery: Windows battery|SMC unavailable" | sed 's/^.*battery: //')
-[ -n "$B1" ] && info "battery: $B1"
+if has "battery: Windows battery ON"; then
+    echo "-- battery (experimental, j613 battery on)"
+    if has "battery: #[0-9]+ [0-9]+% (AC|battery) "; then
+        ok "m1n1 reads the SMC: $(last 'battery: #' | sed 's/^.*battery: //')"
+    elif has "battery: #"; then
+        fail "SMC answered but no battery: $(last 'battery: #' | sed 's/^.*battery: //')"
+    else
+        fail "no battery reading from the SMC: $(last 'battery: (SMC unavailable|read kept back)' | sed 's/^.*battery: //')"
+    fi
+    K=$(grep -a -c "battery: read kept back" "$L")
+    [ "$K" -gt 0 ] && info "$K SMC reads kept back (Windows kept the last good values)"
+    if has "battery: Windows read the battery flags"; then ok "Windows found the battery (BAT0 _STA)"
+    else fail "Windows never looked at the battery (Mu FD older than build 44, or Windows did not boot)"; fi
+    if has "battery: Windows read _BST"; then ok "Windows reads the charge level (_BST)"
+    else info "Windows never read the charge level (_BST) yet"; fi
+    R=$(last "battery: Windows reads after" | sed 's/^.*battery: //'); [ -n "$R" ] && info "$R"
+else
+    B1=$(last "battery: Windows battery" | sed 's/^.*battery: //'); [ -n "$B1" ] && info "battery: $B1"
+fi
 
 echo "-- Windows driver (AppleMtpInput)"
 if ! has "avhd guest read MAGIC"; then

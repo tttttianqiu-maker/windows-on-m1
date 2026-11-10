@@ -443,6 +443,52 @@ static void test_battery_regs(void)
            (DCHID_BATT_PRESENT | DCHID_BATT_DISCHARGING | DCHID_BATT_CRITICAL));
     assert(regs[DCHID_BATT_FCAP] == 4400 && regs[DCHID_BATT_RATE] == 0xffffffff);
 
+    /* the guest view across refreshes: bad reads never replace a good snapshot */
+    struct dchid_batt b;
+    memset(&b, 0, sizeof(b));
+    /* CHIS unknown before the first good read: AC, so 3 % is not critical */
+    r.ok_cur = r.ok_fcc = true;
+    r.cur = -400;
+    r.ok_chis = false;
+    r.buic = 3;
+    assert(dchid_batt_update(&b, &r) && b.seq == 1);
+    assert(b.regs[DCHID_BATT_FLG] == (DCHID_BATT_PRESENT | DCHID_BATT_AC | DCHID_BATT_DISCHARGING));
+    /* on battery, 62 % */
+    r.ok_chis = true;
+    r.chis = 0;
+    r.buic = 62;
+    assert(!dchid_batt_update(&b, &r) && b.held == 1); /* 3 -> 62: held back */
+    assert(!dchid_batt_update(&b, &r) && b.held == 2);
+    assert(dchid_batt_update(&b, &r) && b.held == 0 && b.seq == 2);
+    assert(b.regs[DCHID_BATT_FLG] == (DCHID_BATT_PRESENT | DCHID_BATT_DISCHARGING));
+    assert(b.regs[DCHID_BATT_PCT] == 62 && b.regs[DCHID_BATT_SEQ] == 2);
+    /* BUIC read failed: Windows keeps 62 %, never an all-zero battery */
+    r.ok_buic = false;
+    assert(!dchid_batt_update(&b, &r));
+    assert(b.regs[DCHID_BATT_PCT] == 62 && b.regs[DCHID_BATT_RCAP] == 2604 && b.seq == 2);
+    assert(b.regs[DCHID_BATT_FLG] & DCHID_BATT_PRESENT);
+    /* CHIS failed later: the last AC state (battery) stays */
+    r.ok_buic = true;
+    r.ok_chis = false;
+    r.chis = 1;
+    r.buic = 61;
+    assert(dchid_batt_update(&b, &r) && b.held == 0 && b.seq == 3);
+    assert(b.regs[DCHID_BATT_FLG] == (DCHID_BATT_PRESENT | DCHID_BATT_DISCHARGING));
+    /* a sudden 0 % is held back twice, then believed (critical on battery) */
+    r.ok_chis = true;
+    r.chis = 0;
+    r.buic = 0;
+    assert(!dchid_batt_update(&b, &r) && !dchid_batt_update(&b, &r));
+    assert(b.regs[DCHID_BATT_PCT] == 61);
+    assert(dchid_batt_update(&b, &r) && b.regs[DCHID_BATT_PCT] == 0);
+    assert(b.regs[DCHID_BATT_FLG] & DCHID_BATT_CRITICAL);
+    /* small steps pass at once */
+    r.chis = 1;
+    r.cur = 2000;
+    r.buic = 15;
+    assert(dchid_batt_update(&b, &r) && b.regs[DCHID_BATT_PCT] == 15);
+    assert(b.regs[DCHID_BATT_FLG] == (DCHID_BATT_PRESENT | DCHID_BATT_AC | DCHID_BATT_CHARGING));
+
     /* the guest reads the block at DCHID_BATT_BASE, below the descriptor window */
     assert(DCHID_BATT_BASE + 4 * DCHID_BATT_NREGS <= 0x400 && DCHID_BATT_BASE >= 0x50);
 }

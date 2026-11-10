@@ -38,6 +38,19 @@ def test_serror_is_first():
     assert "tpmtfw-j613.bin.off" in out
 
 
+def test_battery_section():
+    out = verdict("battery.txt")
+    assert "-- battery (experimental" in out
+    assert "[ok]   m1n1 reads the SMC: #3 82% battery" in out
+    assert "1 SMC reads kept back" in out
+    assert "[ok]   Windows found the battery" in out
+    assert "[ok]   Windows reads the charge level" in out
+    assert "_BST 6 (last 25 s ago)" in out
+    assert "[FAIL]" not in out
+    # battery off: one info line, no section
+    assert "-- battery" not in verdict("success.txt")
+
+
 def test_helper_knows_input():
     assert "input) shift; exec sh scripts/j613-input.sh" in (ROOT / "scripts" / "j613").read_text()
 
