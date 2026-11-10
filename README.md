@@ -7,7 +7,7 @@ This is a fork of [arditspark/windows-on-m1](https://github.com/arditspark/windo
 which got Windows 11 running on the M1 MacBook Air (`j313`). This fork ports that work to the M3.
 The J313 sources are kept as close to upstream as possible.
 
-> **Active work is on the [`j613-bringup`](../../tree/j613-bringup) branch.** `main` is still
+> **Active work is on the [`j613-bringup`](https://github.com/tttttianqiu-maker/windows-on-m1/tree/j613-bringup) branch.** `main` is still
 > the unmodified upstream J313 (M1) code plus this README.
 
 > **Warning:** This project runs experimental firmware against the internal SSD. A wrong
@@ -75,14 +75,14 @@ sh scripts/j613 build <name>
 
 The `scripts/j613` helper covers the day-to-day loop: `watch` (run the newest build),
 `again`, `status`, `log`, `input`, and the experimental switches (`mtp`, `screen`, `usb`,
-`battery`, `kbdlight`, `wifi`). See [`CLAUDE.md`](../../blob/j613-bringup/CLAUDE.md).
+`battery`, `kbdlight`, `wifi`). See [`CLAUDE.md`](https://github.com/tttttianqiu-maker/windows-on-m1/blob/j613-bringup/CLAUDE.md).
 
 ## Documentation (on `j613-bringup`)
 
-- [J613 handoff: full history and technical detail](../../blob/j613-bringup/docs/J613-HANDOFF.md)
-- [J613 research notes: USB, display, standalone, wishlist](../../blob/j613-bringup/docs/J613-RESEARCH-2026-11-09.md)
-- [Experiment ledger](../../blob/j613-bringup/investigation/EXPERIMENTS.md) and
-  [change ledger](../../blob/j613-bringup/investigation/CHANGES.csv): every hardware run
+- [J613 handoff: full history and technical detail](https://github.com/tttttianqiu-maker/windows-on-m1/blob/j613-bringup/docs/J613-HANDOFF.md)
+- [J613 research notes: USB, display, standalone, wishlist](https://github.com/tttttianqiu-maker/windows-on-m1/blob/j613-bringup/docs/J613-RESEARCH-2026-11-09.md)
+- [Experiment ledger](https://github.com/tttttianqiu-maker/windows-on-m1/blob/j613-bringup/investigation/EXPERIMENTS.md) and
+  [change ledger](https://github.com/tttttianqiu-maker/windows-on-m1/blob/j613-bringup/investigation/CHANGES.csv): every hardware run
   and every change, with EXP/CHG ids
 - Upstream J313 docs: [`documentation/`](documentation/)
 
