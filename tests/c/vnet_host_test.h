@@ -44,6 +44,7 @@ u8 hv_vgic3_get_priority(u32 vintid);
 void hv_vgic3_inject_irq(u32 vintid, u8 priority, bool active, bool pending, bool hw_status,
                          u64 hw_irq);
 
+#define BRCM_TX_BUSY (-2)
 int brcm_tx(const u8 *frame, u32 len);
 u64 get_ticks(void);
 u64 ticks_to_msecs(u64 ticks);

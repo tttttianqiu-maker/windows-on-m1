@@ -85,7 +85,7 @@ static int tx_fail;
 int brcm_tx(const u8 *f, u32 len)
 {
     if (tx_fail)
-        return -1;
+        return tx_fail;
     memcpy(tx_last, f, len);
     tx_last_len = len;
     tx_count++;
@@ -450,6 +450,29 @@ int main(void)
     CHECK(injected == inj + 1);
     used_pop(t, &id, &len);
     guest_isr_and_eoi();
+    /* chip busy: the frame stays in the guest's ring until the chip has room */
+    tx_fail = BRCM_TX_BUSY;
+    u32 sent = tx_count;
+    set_desc(t, 5, big, 12 + 80, 0, 0);
+    offer(t, 5);
+    mmio_w(cap_notify + notify_mult * t->notify, 1, 1);
+    CHECK(tx_count == sent && used_pending(t) == 0);
+    hv_vnet_poll(); /* tick: still busy */
+    CHECK(used_pending(t) == 0);
+    tx_fail = 0;
+    hv_vnet_poll(); /* tick: retried */
+    CHECK(tx_count == sent + 1 && tx_last_len == 80 && used_pending(t) == 1);
+    used_pop(t, &id, &len);
+    CHECK(id == 5);
+    guest_isr_and_eoi();
+    /* refused by the chip: completed and dropped, the ring moves on */
+    tx_fail = -1;
+    offer(t, 5);
+    mmio_w(cap_notify + notify_mult * t->notify, 1, 1);
+    CHECK(tx_count == sent + 1 && used_pending(t) == 1);
+    used_pop(t, &id, &len);
+    guest_isr_and_eoi();
+    tx_fail = 0;
     /* 600 frames through the 128-entry TX ring */
     ok = 0;
     for (int n = 0; n < 600; n++) {

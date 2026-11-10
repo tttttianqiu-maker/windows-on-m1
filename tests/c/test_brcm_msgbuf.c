@@ -186,7 +186,7 @@ static u8 pmk_key[256];
 static u16 pmk_len, pmk_flags;
 static u8 good_pmk[32];
 static const char good_pass[] = "correct horse battery";
-static int joins, h2d_mb_ds_ack, flow_creates;
+static int joins, h2d_mb_ds_ack, flow_creates, flow_deletes;
 static u8 last_join[128];
 static u32 last_join_len;
 
@@ -424,6 +424,16 @@ static void dongle_msg(int ring, const u8 *m)
             flow_creates++;
             u8 c[24] = {0};
             c[0] = 0x04;
+            p16(c, 10, 2);
+            d2h_put(0, c, 24);
+            break;
+        }
+        case 0x05: { /* FLOW_RING_DELETE */
+            CHECK(ring == 0 && g16(m, 8) == 2 && h2d[2].depth);
+            memset(&h2d[2], 0, sizeof(h2d[2]));
+            flow_deletes++;
+            u8 c[24] = {0};
+            c[0] = 0x06;
             p16(c, 10, 2);
             d2h_put(0, c, 24);
             break;
@@ -687,7 +697,8 @@ int main(void)
     frame[12] = 0x08, frame[13] = 0x00;
     for (u32 n = 14; n < sizeof(frame); n++)
         frame[n] = n ^ 0x5a;
-    CHECK(brcm_tx(frame, 60) == -1); /* first frame: flowring create, frame dropped */
+    CHECK(brcm_tx(frame, 60) == BRCM_TX_BUSY); /* first frame: flowring create, retry */
+    CHECK(brcm_tx(frame, 60) == BRCM_TX_BUSY); /* still being created */
     brcm_poll();
     CHECK(flow_creates == 1);
     CHECK(brcm_tx(frame, 60) == 0);
@@ -700,6 +711,17 @@ int main(void)
         brcm_poll();
     }
     CHECK(ok == 700 && tx_count == 701 && l->tx_errors == 0);
+    /* flow control: without TX completions the 128 TX buffers run out -> busy, not drop */
+    int sent = 0, busy = 0;
+    for (int n = 0; n < 200; n++) {
+        int r = brcm_tx(frame, 100);
+        sent += r == 0;
+        busy += r == BRCM_TX_BUSY;
+    }
+    CHECK(sent == 128 && busy == 72 && l->tx_dropped == 0);
+    brcm_poll(); /* the TX statuses free them */
+    CHECK(brcm_tx(frame, 100) == 0);
+    brcm_poll();
 
     /* ---- RX ---- */
     brcm_set_callbacks(on_rx, NULL);
@@ -737,6 +759,17 @@ int main(void)
     brcm_poll();
     CHECK(!l->link && !l->keyed && l->last_reason == 7);
     CHECK(brcm_tx(frame, 60) == -1);
+    /* like brcmf_proto_delete_peer: the STA flowring goes with the link ... */
+    udelay(10);
+    brcm_poll();
+    CHECK(flow_deletes == 1);
+    /* ... and comes back with the next frame after a new join */
+    CHECK(brcm_join((const u8 *)"TestNet", 7, good_pmk, good_pass, strlen(good_pass)) == 0);
+    CHECK(brcm_tx(frame, 60) == BRCM_TX_BUSY);
+    brcm_poll();
+    CHECK(flow_creates == 2);
+    u32 before_tx = tx_count;
+    CHECK(brcm_tx(frame, 60) == 0 && tx_count == before_tx + 1);
 
     CHECK(unaligned_syncs == 0);
     if (failures) {
