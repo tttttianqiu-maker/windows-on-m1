@@ -18,3 +18,8 @@ wlan: event PSK_SUP (46) status 6 (keyed) reason 0 flags 0x0 from a0:b1:c2:d3:e4
 wlan: CONNECTED to a0:b1:c2:d3:e4:f5, RSSI -52 dBm, 3 frames received so far
 wlan: link UP (reason 0)
 wlan: status: link up, rx 120 frames / 51234 bytes (0 dropped), tx 0 (0 errors, 0 dropped), 4 events
+vnet: virtio-net 00:01.0 for the guest, MAC 3c:a6:f6:01:02:03
+vnet: BAR0 at 0x401000000 (virtio-net 00:01.0, INTA -> vINTID 67)
+vnet: guest driver up (features 0x100010020, rx queue 256, tx queue 256 entries)
+vnet: link up for the guest
+vnet: guest driver up, link up, rx 812 (402113 bytes; dropped: 0 no buffer, 3 not ready, 0 bad), tx 655 (98212 bytes; 0 dropped, 0 bad), 1203 interrupts

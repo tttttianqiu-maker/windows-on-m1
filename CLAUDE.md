@@ -35,7 +35,12 @@ This file is the operational state for an agent running **on the Hackintosh**
   `j613 usb reset|normal` (experimental Linux-ordered guest USB reset, build 40+),
   `j613 battery on|off` (experimental Windows battery from the SMC, build 44+),
   `j613 kbdlight on [0-8]|off` (experimental keyboard backlight, Fn+F5/F6, build 47+)
-- `j613 input`  one-line verdicts for keyboard/trackpad (+ battery) from `hv.log`
+- `j613 input`  one-line verdicts for keyboard/trackpad (+ battery, Wi-Fi) from `hv.log`
+- Built-in Wi-Fi (experimental, build 51+ m1n1 side, 52+ Windows adapter):
+  `j613 wififw` (firmware packed in macOS on the Air by scripts/j613-wifi-fw.sh),
+  `j613 wifi "<network>" ["<password>"]` (prompts when left out; `j613 wifi forget`,
+  `j613 wifi probe|boot|off`), Windows driver: scripts/j613-netkvm.sh in macOS on the
+  Air stages Red Hat's NetKVM ARM64 + a one-shot install job in the j613-jobs mailbox.
 - Build (Linux or macOS with the cross toolchain):
   `BOARD=j613 sh scripts/build-development.sh --display virtual --debug uart`
   -> `dist/j613/debug-uart/` (MANIFEST.json, SHA256SUMS); package as
@@ -104,6 +109,14 @@ Open, in priority order:
    AIC level of the xHCI IRQ and has `j613 usb reset` (Linux-ordered reset).
    Full write-up and the run order for everything else (screen, standalone,
    battery, Wi-Fi, audio, GPU): `docs/J613-RESEARCH-2026-11-09.md`.
+5. Built-in Wi-Fi (2026-11-10/11, implemented, hardware pending): m1n1 runs the BCM4388
+   like Linux brcmfmac (wlan.c PCIe/power, brcm.c attach + firmware boot, brcm_msgbuf.c
+   rings/ioctls, brcm_fwil.c dongle init + WPA2-PSK join with the firmware supplicant)
+   and gives Windows a virtio-net adapter at 00:01.0 of the emulated PCIe root
+   (hv_vnet.c, INTA -> vINTID 67 via the DSDT _PRT) that NetKVM drives. Host tests run
+   the protocol code against a simulated dongle (tests/test_brcm_msgbuf.py) and the
+   device model the way NetKVM drives it (tests/test_vnet.py). EXP-059 (build 51:
+   firmware + join) then EXP-060 (build 52: Windows adapter).
 
 ## References in this repo / scratch
 

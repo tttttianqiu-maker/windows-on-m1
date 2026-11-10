@@ -63,6 +63,16 @@ def test_wifi_connected():
     assert "[FAIL]" not in out.split("-- built-in Wi-Fi")[1].split("\n-- ")[0]
 
 
+def test_wifi_windows_adapter():
+    out = verdict("wifi-connected.txt")
+    assert "-- Wi-Fi adapter in Windows (virtio-net 00:01.0, NetKVM)" in out
+    for line in ("[ok]   Windows/UEFI enumerated the adapter", "[ok]   NetKVM driver running in Windows",
+                 "[ok]   Windows sends through the Wi-Fi", "[ok]   Windows receives from the Wi-Fi"):
+        assert line in out
+    # no adapter section without the virtio-net lines; no driver -> the macOS hint
+    assert "-- Wi-Fi adapter" not in verdict("wifi-wrongpass.txt")
+
+
 def test_wifi_wrong_password():
     out = verdict("wifi-wrongpass.txt")
     assert "[FAIL] joined but the WPA2 handshake failed: password wrong?" in out

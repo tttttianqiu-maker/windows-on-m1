@@ -42,14 +42,17 @@ Status labels follow the upstream rules: **validated** = seen working on the dev
 - Correct Windows clock taken from the host (build 47+).
 - Keyboard backlight with Fn+F5/F6 (`j613 kbdlight on`, build 47+).
 - Fix for the SErrors seen with the trackpad: m1n1 now unmaps the T8122 TrustZone carveouts.
+- Built-in Wi-Fi (Broadcom 4388 chip): m1n1 drives it like Linux brcmfmac (firmware from the
+  owner's macOS, WPA2-Personal join) and gives Windows a virtio-net adapter that Red Hat's
+  NetKVM driver runs (`j613 wifi "<network>"`, build 51 m1n1 side, build 52 Windows side).
+  Host-tested against a simulated chip and a simulated NetKVM; not run on the Air yet.
 
 ### Not working yet
 
 - USB ports under Windows (they work in UEFI/Setup). Root cause understood, an ordered reset
   is implemented as `j613 usb reset`.
 - Standalone boot without the host Mac (the on-disk image still falls back to proxy mode).
-- Sleep (disabled, it shut the machine down), Wi-Fi (hardware probe and PCIe
-  bring-up written, not run yet), Bluetooth, audio, webcam, GPU.
+- Sleep (disabled, it shut the machine down), Bluetooth, audio, webcam, GPU.
 
 ## How it runs (assisted mode)
 

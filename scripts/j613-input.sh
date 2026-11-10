@@ -87,6 +87,19 @@ if has "wlan: (stage 2 probe|probe \\()"; then
         has "wlan: link DOWN" && info "link went down later: $(last "wlan: link DOWN" | sed 's/^.*wlan: //')"
         S=$(last "wlan: status: " | sed 's/^.*wlan: //'); [ -n "$S" ] && info "last $S"
     fi
+    if has "vnet: virtio-net 00:01.0"; then
+        echo "-- Wi-Fi adapter in Windows (virtio-net 00:01.0, NetKVM)"
+        has "vnet: BAR0 at" && ok "Windows/UEFI enumerated the adapter" || info "adapter not enumerated yet (Windows did not get to PCI, or no BAR)"
+        if has "vnet: guest driver up"; then ok "NetKVM driver running in Windows"
+        else fail "no Windows driver on the adapter: scripts/j613-netkvm.sh in macOS on the Air, then boot Windows once"; fi
+        has "vnet: device error" && fail "$(last "vnet: device error" | sed 's/^.*vnet: //')"
+        V=$(last "vnet: guest (driver up|no driver), " | sed 's/^.*vnet: //')
+        if [ -n "$V" ]; then
+            info "$V"
+            echo "$V" | grep -q -E "tx [1-9]" && ok "Windows sends through the Wi-Fi"
+            echo "$V" | grep -q -E "rx [1-9]" && ok "Windows receives from the Wi-Fi"
+        fi
+    fi
     grep -a "wlan: " "$L" | grep -a -v -E "wlan: (fw: |status: )" | sed 's/^.*wlan: /  [..]   /' | head -60
     N=$(grep -a -c "wlan: fw: " "$L")
     if [ "$N" -gt 0 ]; then
