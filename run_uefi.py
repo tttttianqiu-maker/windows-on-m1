@@ -433,5 +433,15 @@ if (os.environ.get("J613_USB_RESET") == "1" or
     except Exception as e:  # older m1n1 without P_HV_USB_RESET_MODE
         print(f"WARNING: this m1n1 cannot do the ordered USB reset ({e})")
 
+# `j613 battery on`: SMC battery keys (read-only) -> Windows battery/AC (ACPI BAT0/ADP1
+# on the AVHD page). Off by default: it talks to the SMC while Windows runs.
+if (os.environ.get("J613_BATTERY") == "1" or
+        (pathlib.Path(__file__).resolve().parent / "firmware" / "battery").exists()):
+    try:
+        p.hv_battery_mode(1)
+        print("Windows battery: SMC battery keys -> ACPI BAT0/ADP1 ON")
+    except Exception as e:  # older m1n1 without P_HV_BATTERY_MODE
+        print(f"WARNING: this m1n1 cannot serve the battery ({e})")
+
 print("Starting guest...")
 hv.start()

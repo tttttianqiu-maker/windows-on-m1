@@ -37,6 +37,11 @@ static void test_guest_keyboard_descriptor(void)
     assert(ai_hid_input_contract_parse(dchid_guest_kbd_desc, dchid_guest_kbd_desc_len, &c) ==
            AI_OK);
     assert(c.uses_report_ids && c.bytes_by_id[DCHID_KBD_REPORT_ID] == DCHID_KBD_REPORT_LEN);
+    assert(c.bytes_by_id[DCHID_CONSUMER_REPORT_ID] == DCHID_CONSUMER_REPORT_LEN);
+    {
+        u8 cr[DCHID_CONSUMER_REPORT_LEN] = {2, 0xe9, 0, 0, 0};
+        assert(ai_hid_input_report_valid(&c, cr, sizeof(cr), &id) && id == 2);
+    }
     assert(ai_hid_input_report_valid(&c, r, sizeof(r), &id) && id == 1);
     /* Generic Desktop / Keyboard application collection, report ID 1 */
     assert(dchid_guest_kbd_desc[0] == 0x05 && dchid_guest_kbd_desc[1] == 0x01);
@@ -348,8 +353,104 @@ static void test_j613_trackpad_pipeline(void)
     assert(ptp_len > 0);
 }
 
+static void test_fn_media(void)
+{
+    struct dchid_fn_state st;
+    u8 r[DCHID_KBD_REPORT_LEN], c[DCHID_CONSUMER_REPORT_LEN];
+
+    memset(&st, 0, sizeof(st));
+    kbd(r, 0x45, 0x04); /* F12 alone (+ 'a'): stays F12, no consumer report */
+    dchid_kbd_fn_translate(&st, r, false);
+    assert(!dchid_kbd_fn_media(&st, r, c));
+    assert(r[3] == 0x45 && r[4] == 0x04);
+    kbd(r, 0, 0);
+    dchid_kbd_fn_translate(&st, r, false);
+    assert(!dchid_kbd_fn_media(&st, r, c));
+
+    kbd(r, 0x04, 0x45); /* 'a' held, then Fn+F12 = Volume Up, F12 leaves report 1 */
+    dchid_kbd_fn_translate(&st, r, true);
+    assert(dchid_kbd_fn_media(&st, r, c));
+    assert(c[0] == 2 && c[1] == 0xe9 && c[2] == 0 && c[3] == 0 && c[4] == 0);
+    assert(r[3] == 0x04 && r[4] == 0);
+    kbd(r, 0x04, 0x45); /* same state again: no new consumer report */
+    dchid_kbd_fn_translate(&st, r, false); /* Fn released, F12 still held: still volume */
+    assert(!dchid_kbd_fn_media(&st, r, c));
+    assert(r[3] == 0x04 && r[4] == 0);
+    kbd(r, 0x04, 0); /* F12 released: consumer report goes empty */
+    dchid_kbd_fn_translate(&st, r, false);
+    assert(dchid_kbd_fn_media(&st, r, c) && c[1] == 0 && c[2] == 0);
+
+    kbd(r, 0x41, 0x3c); /* Fn+F8 = Play/Pause, Fn+F3 stays F3 */
+    dchid_kbd_fn_translate(&st, r, true);
+    assert(dchid_kbd_fn_media(&st, r, c) && c[1] == 0xcd && c[2] == 0x00);
+    assert(r[3] == 0x3c && r[4] == 0);
+    kbd(r, 0x3d, 0x3a); /* Fn+F4 = Search (0x221), Fn+F1 = Brightness Down */
+    dchid_kbd_fn_translate(&st, r, true);
+    assert(dchid_kbd_fn_media(&st, r, c));
+    assert(c[1] == 0x21 && c[2] == 0x02 && c[3] == 0x70 && c[4] == 0x00);
+    assert(r[3] == 0 && r[4] == 0);
+}
+
+static void test_battery_regs(void)
+{
+    struct dchid_batt_raw r;
+    u32 regs[DCHID_BATT_NREGS];
+
+    /* nothing read: magic only, not present (ACPI hides BAT0/ADP1) */
+    memset(&r, 0, sizeof(r));
+    dchid_batt_regs(&r, 1, regs);
+    assert(regs[DCHID_BATT_MAG] == DCHID_BATT_MAGIC && regs[DCHID_BATT_FLG] == 0);
+
+    /* on battery, 62 %, 3 cells, discharging 850 mA */
+    memset(&r, 0, sizeof(r));
+    r.ok_buic = r.ok_fcc = r.ok_dcap = r.ok_volt = r.ok_cur = r.ok_cyc = r.ok_chis =
+        r.ok_cells = true;
+    r.buic = 62;
+    r.fcc = 4200;
+    r.dcap = 4400;
+    r.volt = 11850;
+    r.cur = -850;
+    r.cyc = 42;
+    r.chis = 0;
+    r.cells = 3;
+    dchid_batt_regs(&r, 7, regs);
+    assert(regs[DCHID_BATT_FLG] == (DCHID_BATT_PRESENT | DCHID_BATT_DISCHARGING));
+    assert(regs[DCHID_BATT_RCAP] == 2604 && regs[DCHID_BATT_FCAP] == 4200);
+    assert(regs[DCHID_BATT_DCAP] == 4400 && regs[DCHID_BATT_RATE] == 850);
+    assert(regs[DCHID_BATT_DVOLT] == 11400 && regs[DCHID_BATT_CYC] == 42);
+    assert(regs[DCHID_BATT_PCT] == 62 && regs[DCHID_BATT_SEQ] == 7);
+
+    /* charger in, charging */
+    r.chis = 1;
+    r.cur = 1500;
+    dchid_batt_regs(&r, 8, regs);
+    assert(regs[DCHID_BATT_FLG] == (DCHID_BATT_PRESENT | DCHID_BATT_AC | DCHID_BATT_CHARGING));
+
+    /* charger in, full (no current): neither charging nor discharging */
+    r.cur = 0;
+    r.buic = 100;
+    dchid_batt_regs(&r, 9, regs);
+    assert(regs[DCHID_BATT_FLG] == (DCHID_BATT_PRESENT | DCHID_BATT_AC));
+    assert(regs[DCHID_BATT_RCAP] == 4200);
+
+    /* critical when discharging at <= 5 %, unknown current, FCC missing -> design */
+    r.chis = 0;
+    r.ok_cur = false;
+    r.ok_fcc = false;
+    r.buic = 4;
+    dchid_batt_regs(&r, 10, regs);
+    assert(regs[DCHID_BATT_FLG] ==
+           (DCHID_BATT_PRESENT | DCHID_BATT_DISCHARGING | DCHID_BATT_CRITICAL));
+    assert(regs[DCHID_BATT_FCAP] == 4400 && regs[DCHID_BATT_RATE] == 0xffffffff);
+
+    /* the guest reads the block at DCHID_BATT_BASE, below the descriptor window */
+    assert(DCHID_BATT_BASE + 4 * DCHID_BATT_NREGS <= 0x400 && DCHID_BATT_BASE >= 0x50);
+}
+
 int main(void)
 {
+    test_battery_regs();
+    test_fn_media();
     test_j613_trackpad_pipeline();
     test_hid_scan();
     test_fn_layer();

@@ -42,6 +42,9 @@ else
 fi
 first "dchid: trackpad report .* (trimmed|unusable|dropped)" 2 | sed 's/^.*dchid: /  [..]   /'
 
+B1=$(last "battery: #|battery: Windows battery|SMC unavailable" | sed 's/^.*battery: //')
+[ -n "$B1" ] && info "battery: $B1"
+
 echo "-- Windows driver (AppleMtpInput)"
 if ! has "avhd guest read MAGIC"; then
     fail "the Windows driver never touched the device (not installed, not loading, or Windows did not get this far)"
