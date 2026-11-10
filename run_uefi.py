@@ -412,6 +412,11 @@ if no_mtp:
         print("J613 MTP bring-up disabled (firmware/no-mtp)")
     else:
         print("WARNING: this m1n1 cannot disable the MTP bring-up")
+    # Also hide the keyboard/trackpad ACPI device (Mu AcpiPlatformDxe patches the AVHD
+    # _STA to 0), so Windows does not load AppleMtpInput at all: the way out if that
+    # driver ever crashes Windows at boot. Older Mu builds ignore the property.
+    hv.adt["chosen"].wom_avhd_off = b"\x01\x00\x00\x00"
+    print("J613 keyboard/trackpad device hidden from Windows (wom-avhd-off)")
 elif mtp_fw and pathlib.Path(mtp_fw).is_file():
     blob = pathlib.Path(mtp_fw).read_bytes()
     fw_addr = p.malloc(len(blob))

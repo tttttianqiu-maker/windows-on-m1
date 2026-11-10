@@ -55,3 +55,26 @@ def test_adt_attribute_name_and_layout():
     assert struct.unpack("<QQ", blob[i + 36:i + 52]) == (1794000000, 0x123456789A)
     del adt["chosen"].wom_wall_clock
     assert adt.build() == root
+
+
+def test_mtp_off_hides_the_avhd_device():
+    text = RUN.read_text()
+    no_mtp = text[text.index("if no_mtp:"):text.index("elif mtp_fw and")]
+    assert 'hv.adt["chosen"].wom_avhd_off' in no_mtp
+    assert text.index("if no_mtp:") < text.index("hv.start()")
+    acpi = (ROOT / "mu" / "Silicon" / "Apple" / "AppleSiliconPkg" / "Drivers" / "AcpiPlatformDxe")
+    c = (acpi / "AcpiPlatform.c").read_text()
+    assert '"wom-avhd-off"' in c
+    # every table goes through the switch before its checksum
+    assert c.count("AcpiPlatformApplyHostSwitches ((UINT8 *)CurrentTable, TableSize);\n"
+                   "      AcpiPlatformChecksum ((UINT8 *)CurrentTable, TableSize);") == 4
+    assert "AppleDTLib" in (acpi / "AcpiPlatformDxe.inf").read_text()
+
+
+def test_avhd_sta_pattern_is_unique_in_the_dsdt_source():
+    """The patch looks for Name(_STA, 0x0F) right after _HID "APPL0613"."""
+    asl = (ROOT / "mu" / "Platform" / "MacBookAirM3J613Pkg" / "AcpiTables" / "DSDT.asl").read_text()
+    dev = asl[asl.index("Device(AVHD)"):]
+    dev = dev[:dev.index("Name(_CRS")]
+    assert 'Name(_HID, "APPL0613")' in dev and "Name(_STA, 0x0F)" in dev
+    assert asl.count("Name(_STA, 0x0F)") == 1
