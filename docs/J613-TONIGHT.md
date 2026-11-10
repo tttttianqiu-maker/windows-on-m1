@@ -7,7 +7,10 @@ says "on the Air".
 
 1. Download `j613-kbdfix-42.tar.gz` into `~/Downloads`. If `j613-kbdfix-41.tar.gz`
    is there too, delete it: the watcher always runs the newest tarball.
-2. `j613 pull` (brings `j613 input` and this file).
+2. `j613 pull` (brings `j613 input` and this file). If it complains about
+   divergent branches (patches from 2026-11-09 applied by hand), the remote
+   already has those commits: `git fetch && git reset --hard origin/j613-bringup
+   && git submodule update --init` (firmware/ and runs/ are untracked and stay).
 
 Build 42 = m1n1 5df3acb + Mu c0cd337 (same Mu as builds 40/41). The Windows
 driver is the one already installed; no WinPE pass, no macOS boot.
@@ -69,3 +72,10 @@ screen, so if the repair works the keyboard works in that same boot. It also
 installs a boot task that writes `j613-jobs/input-snapshot.txt` 2 minutes after
 every boot. Next macOS visit: `bash /tmp/diag.sh --read` (or the curl line
 again) shows the results.
+
+## Next, once keyboard + trackpad work: USB (EXP-20261109-052)
+
+Separate run, one variable: `j613 usb reset`, plug a USB mouse or a USB stick
+that is NOT the Windows install stick into the Air before boot, `j613 again`.
+Expect the worst case to be a sudden Air reset (known failure mode, no damage).
+Then `grep -a -E "xHCI|AIC 1030|usb" hv.log | tail -40` and paste it.
