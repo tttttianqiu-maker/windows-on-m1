@@ -84,7 +84,15 @@ The `scripts/j613` helper covers the day-to-day loop: `watch` (run the newest bu
 - [Experiment ledger](https://github.com/tttttianqiu-maker/windows-on-m1/blob/j613-bringup/investigation/EXPERIMENTS.md) and
   [change ledger](https://github.com/tttttianqiu-maker/windows-on-m1/blob/j613-bringup/investigation/CHANGES.csv): every hardware run
   and every change, with EXP/CHG ids
-- Upstream J313 docs: [`documentation/`](documentation/)
+- Upstream J313 (M1) docs, which still describe the M1 port:
+  [INSTALL](documentation/INSTALL.md), [BUILD](documentation/BUILD.md),
+  [RUN](documentation/RUN.md), [ARCHITECTURE](documentation/ARCHITECTURE.md),
+  [DEBUGGING](documentation/DEBUGGING.md),
+  [DEVELOPMENT_HISTORY](documentation/DEVELOPMENT_HISTORY.md),
+  [LIMITATIONS](documentation/LIMITATIONS.md), and
+  [APPLE_INPUT](documentation/APPLE_INPUT.md) (on the J313 the
+  built-in Apple keyboard and Precision Touchpad work natively in Windows; the J613 port of
+  that driver is above)
 
 ## Repositories
 
