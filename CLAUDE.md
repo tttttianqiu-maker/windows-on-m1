@@ -32,7 +32,8 @@ This file is the operational state for an agent running **on the Hackintosh**
 - `j613 status` next tarball the watcher will run + all switches (check before every run)
 - `j613 mtp off|on`, `j613 screen on|off` (Windows on the Air's panel, build 39+),
   `j613 usb reset|normal` (experimental Linux-ordered guest USB reset, build 40+),
-  `j613 battery on|off` (experimental Windows battery from the SMC, build 44+)
+  `j613 battery on|off` (experimental Windows battery from the SMC, build 44+),
+  `j613 kbdlight on [0-8]|off` (experimental keyboard backlight, Fn+F5/F6, build 47+)
 - `j613 input`  one-line verdicts for keyboard/trackpad (+ battery) from `hv.log`
 - Build (Linux or macOS with the cross toolchain):
   `BOARD=j613 sh scripts/build-development.sh --display virtual --debug uart`
@@ -93,6 +94,10 @@ Open, in priority order:
    (m1n1 481eb50) and the opt-in battery (m1n1 641ec3b/97af25a, Mu
    5b3ed9f/c0278d4: BAT0/ADP1 on the AVHD page, SMC read-only every 60 s,
    bad reads never reach Windows); battery run = EXP-055 after EXP-054.
+   Build 47 adds the real Windows clock (Mu f469884 + run_uefi.py: host local
+   time via ADT /chosen wom-wall-clock; before, Windows booted at 2019-01),
+   the T8122 EVT_USB2_CTL step in `j613 usb reset` (EXP-052) and the opt-in
+   keyboard backlight (EXP-056).
 4. USB under Windows: cause understood (Linux dwc3-apple.c: one connect event
    per PHY+DWC3 init; eUSB2 repeater reset by the PD chip). Build 40 logs the
    AIC level of the xHCI IRQ and has `j613 usb reset` (Linux-ordered reset).

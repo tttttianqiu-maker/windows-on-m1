@@ -7,13 +7,13 @@ where it says "on the Air".
 
 1. Download the newest build into `~/Downloads` and delete older
    `j613-*.tar.gz` there: the watcher always runs the newest tarball.
-   - `j613-batt-45.tar.gz` (m1n1 97af25a, Mu c0278d4, root c427217): use this.
-   - `j613-media-batt-44.tar.gz` is the same for the keyboard run (45 only
-     changes the battery path); do not use 44 for the battery run.
-2. `j613 pull` (brings `j613 battery`, `j613 input` and this file). If it
-   complains about divergent branches: `git fetch && git reset --hard
-   origin/j613-bringup && git submodule update --init` (firmware/ and runs/
-   are untracked and stay).
+   - `j613-kbdlight-47.tar.gz` (m1n1 9602b57, Mu f469884): use this one for
+     every run below.
+   - Already started run 1 with 44 or 45? Fine, finish it; use 47 after.
+2. `j613 pull` (brings `j613 battery`, `j613 kbdlight`, `j613 input`, the
+   clock hand-over and this file). If it complains about divergent branches:
+   `git fetch && git reset --hard origin/j613-bringup && git submodule update
+   --init` (firmware/ and runs/ are untracked and stay).
 
 What is in it, compared with build 42 (EXP-053):
 - The keyboard/trackpad ACPI device has a new `_UID`, so Windows sees new
@@ -21,7 +21,9 @@ What is in it, compared with build 42 (EXP-053):
   store (EXP-053: Windows never started the driver on the old device, which
   Setup had marked "no driver"). No WinPE pass, no macOS boot.
 - Fn + top row = media keys.
-- Battery % in Windows, off unless `j613 battery on`.
+- Windows shows the real date and time (it booted at January 2019 before).
+- Switches, all off by default: battery % (`j613 battery on`), keyboard
+  backlight (`j613 kbdlight on`), USB reset (`j613 usb reset`).
 
 ## 1. Run 1: keyboard + trackpad
 
@@ -32,9 +34,9 @@ j613 battery off
 j613 status
 ```
 
-Expected: next build `j613-batt-45` (or 44), MTP on, trackpad fw present, Air
-screen on, USB reset off, battery off, watcher running (`j613 watch` in its own
-Terminal if not).
+Expected: next build `j613-kbdlight-47`, MTP on, trackpad fw present, Air
+screen on, USB reset off, battery off, kbdlight off, watcher running (`j613
+watch` in its own Terminal if not).
 
 `j613 again`, then put the Air into proxy mode as usual.
 
@@ -57,6 +59,7 @@ the keyboard. A "setting up a device" notification is a good sign.
   Without Fn the top row is F1-F12.
 - Trackpad: move, click (press or tap), two-finger scroll, two-finger click =
   right click.
+- Clock: the taskbar should show the real time (the Hackintosh's).
 
 ### Verdict
 
@@ -84,6 +87,19 @@ m1n1 reads the battery from the SMC (the Mac's power controller) read-only
 every 60 s, the same values Linux reads. It never changes charging. If Windows
 stutters every minute, or anything odd happens: `j613 battery off`.
 
+## 3. Run 3: keyboard backlight (after run 1 works)
+
+```
+j613 battery off      # one thing at a time
+j613 kbdlight on      # start level 3 of 8; `j613 kbdlight on 6` = brighter start
+j613 again
+```
+
+The keys light up when Windows starts. Fn+F5 = darker, Fn+F6 = brighter (m1n1
+handles these two, Windows never sees them while this is on). `j613 input`
+shows the last level. If the Air resets or the log shows an SError right after
+a `kbdlight:` line: `j613 kbdlight off` and paste the output.
+
 ## If something fails
 
 | `j613 input` says | Do |
@@ -107,9 +123,11 @@ installs a boot task that writes `j613-jobs/input-snapshot.txt` 2 minutes after
 every boot. Next macOS visit: `bash /tmp/diag.sh --read` (or the curl line
 again) shows the results.
 
-## Next, once keyboard + trackpad work: USB (EXP-20261109-052)
+## 4. Run 4: USB (EXP-20261109-052)
 
-Separate run, one variable: `j613 usb reset`, plug a USB mouse or a USB stick
-that is NOT the Windows install stick into the Air before boot, `j613 again`.
-Expect the worst case to be a sudden Air reset (known failure mode, no damage).
-Then `grep -a -E "xHCI|AIC 1030|usb" hv.log | tail -40` and paste it.
+Separate run, one variable: `j613 kbdlight off`, `j613 usb reset`, plug a USB
+mouse or a USB stick that is NOT the Windows install stick into the Air before
+boot, `j613 again`. Expect the worst case to be a sudden Air reset (known
+failure mode, no damage). Then `grep -a -E "xHCI|AIC 1030|usb" hv.log | tail
+-60` and paste it. Build 47 adds the M3-only step Linux does when it powers the
+USB2 PHY on, and logs the PHY's power state for the next fix.

@@ -7976,3 +7976,37 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
 - Watch: hitches every 60 s (SMC boot handshake on the interruptible CPU,
   1 s timeouts per step), "read kept back" lines, any reset. Abort switch:
   `j613 battery off`.
+
+### Build 47 (artifact only) and the runs after EXP-054/055
+
+- j613-kbdlight-47 (m1n1 9602b57, Mu f469884, root after 5a0b686; MANIFEST
+  clean). Build 45 plus, always on: the guest wall clock (CHG-025/026: Mu's
+  RTC takes the host's local time from ADT /chosen wom-wall-clock; before,
+  Windows booted at 2019-01-xx); opt-in: the T8122 EVT_USB2_CTL step in
+  `j613 usb reset` (CHG-024) and the keyboard backlight (CHG-027/028).
+- Clock check (any run with build 47 and `j613 pull`): "Guest clock: ..." in
+  the run output, Mu log "RTC: wall clock from the host", the Windows taskbar
+  clock right after boot. Failure mode to watch: a hang right after Mu's
+  RealTimeClock driver loads or an early Windows bugcheck (GetTime at boot).
+
+### EXP-20261109-052 — USB with `j613 usb reset` (planned, build 47)
+
+- One variable: `j613 usb reset`, a USB mouse or a stick (not the install
+  stick) plugged into the Air before boot, everything else as the last good
+  run, battery/kbdlight off.
+- New in build 47: the ordered reset logs "usb: atc1 core ... EVT=..
+  PWR_CTRL=.. PWR_STAT=.. MISC=.." (and atc0 for comparison) before it acts,
+  then "usb: T8122 EVT_USB2_CTL a -> b". If atc1's PWR_STAT shows the core
+  asleep while atc0's is awake, the next step is Linux's atcphy_power_on for
+  the guest port. "no ADT reg at ..." means the ADT does not list the core
+  block and the EVT step was skipped (ordered reset as in build 40).
+- Paste: `grep -a -E "xHCI|AIC 1030|usb" hv.log | tail -60`.
+
+### EXP-20261110-056 — keyboard backlight (planned, build 47)
+
+- `j613 kbdlight on` (start level 3 of 8), keyboard working (EXP-054).
+- Expected: "kbdlight: /arm-io/fpwm1 control was ..." then "kbdlight: on,
+  level 3/8"; keys lit; Fn+F5 darker, Fn+F6 brighter ("kbdlight: level n/8").
+  "no /arm-io/fpwm1" or "Linux t8122.dtsi says ..." = ADT differs, nothing
+  written. Watch for an SError right after "kbdlight:" (wrong block or power
+  domain): `j613 kbdlight off`.
