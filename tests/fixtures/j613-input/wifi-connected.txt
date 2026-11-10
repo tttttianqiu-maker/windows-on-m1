@@ -1,0 +1,20 @@
+wlan: probe (PCIe link, chip id, cores, OTP)
+wlan: link up after 7 ms
+wlan: chip 4388 rev 4 (chipid 0x15294388, AXI, window 0x18000000)
+wlan: probe OK
+wlan: firmware started after 412 ms
+wlan: firmware boot OK
+wlan: DMA pool 0x10003c8000 = IOVA 0x80000000 (2048 KiB), DART 0x594000000 stream 1
+wlan: rings: mem 0x1f2a40, idx h2d w/r 0x1f3000/0x1f3100 d2h w/r 0x1f3200/0x1f3300, 40 flowrings, 42 submission, 3 completion (TCM indices)
+wlan: msgbuf up: 128 rx, 8 event, 4 ioctl buffers posted, 651 KiB DMA used, hostready sent
+wlan: MAC 3c:a6:f6:01:02:03 (from the ADT)
+wlan: clmload: 23413 bytes loaded
+wlan: interface up: OK
+wlan: dongle init OK
+wlan: joining "Home Net" (WPA2-PSK, firmware supplicant)
+wlan: event SET_SSID (0) status 0 (success) reason 0 flags 0x0 from a0:b1:c2:d3:e4:f5, 0 data bytes
+wlan: event LINK (16) status 0 (success) reason 0 flags 0x1 from a0:b1:c2:d3:e4:f5, 0 data bytes
+wlan: event PSK_SUP (46) status 6 (keyed) reason 0 flags 0x0 from a0:b1:c2:d3:e4:f5, 0 data bytes
+wlan: CONNECTED to a0:b1:c2:d3:e4:f5, RSSI -52 dBm, 3 frames received so far
+wlan: link UP (reason 0)
+wlan: status: link up, rx 120 frames / 51234 bytes (0 dropped), tx 0 (0 errors, 0 dropped), 4 events

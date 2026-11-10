@@ -72,7 +72,22 @@ if has "wlan: (stage 2 probe|probe \\()"; then
     has "wlan: probe OK" && ok "Broadcom chip attached (cores, RAM, OTP)"
     if has "wlan: firmware started after"; then ok "Wi-Fi firmware is running"
     elif has "wlan: (firmware did not start|firmware does not fit|firmware set incomplete|bad shared RAM)"; then fail "Wi-Fi firmware did not start"; fi
-    grep -a "wlan: " "$L" | grep -a -v "wlan: fw: " | sed 's/^.*wlan: /  [..]   /' | head -40
+    if has "wlan: msgbuf up"; then ok "message rings set up (DMA through the pcie0 DART)"
+    elif has "wlan: (ring setup FAILED|ring info looks wrong|DMA pool|DART map failed|pcie0 DART init failed)"; then fail "message ring setup failed"; fi
+    has "wlan: DART fault" && fail "the chip hit a DART fault (DMA outside the mapped pool)"
+    if has "wlan: MAC [0-9a-f]"; then ok "control channel works (first ioctl answered)"
+    elif has "wlan: no answer to the first ioctl"; then fail "no answer to the first ioctl: the control rings do not work"; fi
+    if has "wlan: interface up: OK"; then ok "Wi-Fi interface up (CLM, calibration, events)"
+    elif has "wlan: (interface up: failed|dongle init FAILED)"; then fail "dongle init failed"; fi
+    if has "wlan: joining "; then
+        if has "wlan: CONNECTED to"; then ok "$(last "wlan: CONNECTED to" | sed 's/^.*wlan: //')"
+        elif has "was not found"; then fail "network not found (name, range, 2.4/5 GHz WPA2?)"
+        elif has "handshake timeout"; then fail "joined but the WPA2 handshake failed: password wrong?"
+        else fail "join failed: $(last "wlan: join failed" | sed 's/^.*wlan: //')"; fi
+        has "wlan: link DOWN" && info "link went down later: $(last "wlan: link DOWN" | sed 's/^.*wlan: //')"
+        S=$(last "wlan: status: " | sed 's/^.*wlan: //'); [ -n "$S" ] && info "last $S"
+    fi
+    grep -a "wlan: " "$L" | grep -a -v -E "wlan: (fw: |status: )" | sed 's/^.*wlan: /  [..]   /' | head -60
     N=$(grep -a -c "wlan: fw: " "$L")
     if [ "$N" -gt 0 ]; then
         info "firmware console ($N lines, first 15):"

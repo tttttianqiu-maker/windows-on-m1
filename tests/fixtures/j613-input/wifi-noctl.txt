@@ -1,0 +1,9 @@
+wlan: probe (PCIe link, chip id, cores, OTP)
+wlan: link up after 7 ms
+wlan: probe OK
+wlan: firmware started after 412 ms
+wlan: msgbuf up: 128 rx, 8 event, 4 ioctl buffers posted, 651 KiB DMA used, hostready sent
+wlan: DART fault after buffer posting: error 0x80000004 at 0x0c0000000
+wlan: ioctl 262 timed out
+wlan: no answer to the first ioctl (cur_etheraddr): the control path is not working
+wlan: dongle init FAILED

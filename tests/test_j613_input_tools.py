@@ -52,6 +52,31 @@ def test_battery_section():
     assert "-- battery" not in verdict("success.txt")
 
 
+def test_wifi_connected():
+    out = verdict("wifi-connected.txt")
+    assert "-- built-in Wi-Fi" in out
+    for line in ("PCIe link to the Wi-Fi chip is up", "Wi-Fi firmware is running",
+                 "message rings set up", "control channel works", "Wi-Fi interface up",
+                 "[ok]   CONNECTED to a0:b1:c2:d3:e4:f5, RSSI -52 dBm",
+                 "last status: link up, rx 120 frames"):
+        assert line in out
+    assert "[FAIL]" not in out.split("-- built-in Wi-Fi")[1].split("\n-- ")[0]
+
+
+def test_wifi_wrong_password():
+    out = verdict("wifi-wrongpass.txt")
+    assert "[FAIL] joined but the WPA2 handshake failed: password wrong?" in out
+    assert "CONNECTED" not in out
+
+
+def test_wifi_control_path_dead():
+    out = verdict("wifi-noctl.txt")
+    assert "[ok]   message rings set up" in out
+    assert "[FAIL] the chip hit a DART fault" in out
+    assert "[FAIL] no answer to the first ioctl" in out
+    assert "joining" not in out
+
+
 def test_helper_knows_input():
     assert "input) shift; exec sh scripts/j613-input.sh" in (ROOT / "scripts" / "j613").read_text()
 

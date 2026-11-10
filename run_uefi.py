@@ -461,22 +461,35 @@ if os.environ.get("J613_KBDLIGHT") or _kbl.exists():
     except Exception as e:  # older m1n1 without P_HV_KBD_BACKLIGHT
         print(f"WARNING: this m1n1 cannot drive the keyboard backlight ({e})")
 
-# Built-in Wi-Fi (m1n1 wlan.c + brcm.c), experimental, off by default:
+# Built-in Wi-Fi (m1n1 wlan.c + brcm.c + brcm_msgbuf.c + brcm_fwil.c), experimental, off by
+# default:
 #   `j613 wifi probe` (firmware/wifi-probe): PCIe link, chip id, Broadcom cores, RAM, OTP.
 #   `j613 wifi boot`  (firmware/wifi-boot): the probe, then the BCM4388 firmware from the
 #     owner's macOS (`j613 wififw` -> firmware/wifi) picked the way Asahi Linux does
-#     (tools/j613/wifi_fw.py) and booted; its console lands in hv.log as "wlan: fw: ...".
+#     (tools/j613/wifi_fw.py) and booted, the msgbuf rings and the dongle init (MAC,
+#     CLM/TxCap/calibration blobs, interface up); its console lands in hv.log as "wlan: fw:".
+#   `j613 wifi "<name>" ["<password>"]` (firmware/wifi-net, tools/j613/wifi_net.py): after
+#     the boot, m1n1 joins that WPA2-Personal network with the firmware's supplicant.
+# m1n1 works through these calls without printing for longer than the proxy's 3 s read
+# timeout (firmware start, the join), so the timeout is raised around them.
 _wifi_dir = pathlib.Path(__file__).resolve().parent / "firmware"
 _wifi_mode = os.environ.get("J613_WIFI") or (
     "boot" if (_wifi_dir / "wifi-boot").exists() else
     "probe" if (_wifi_dir / "wifi-probe").exists() else "")
 if _wifi_mode in ("probe", "boot"):
+    def _wifi_call(stage, arg, seconds):
+        _old = iface.dev.timeout
+        iface.dev.timeout = seconds
+        try:
+            return p.hv_wifi(stage, arg)
+        finally:
+            iface.dev.timeout = _old
     try:
         import struct as _wstruct
-        from tools.j613 import wifi_fw
+        from tools.j613 import wifi_fw, wifi_net
         _info = u.malloc(0x100)
         iface.writemem(_info, bytes(0x100))
-        ok = p.hv_wifi(0, _info)
+        ok = _wifi_call(0, _info, 30)
         (_magic, _dev, _chip, _rev, _up, _att, _otpv, _rambase, _ramsize,
          _mod, _ven, _ver) = _wstruct.unpack("<IHHBBBBII16s16s16s", iface.readmem(_info, 68))
         _cstr = lambda b: b.split(b"\0", 1)[0].decode("ascii", "replace")
@@ -487,11 +500,13 @@ if _wifi_mode in ("probe", "boot"):
         if _wifi_mode == "boot" and ok and _magic == 0x4E414C57 and _att:
             _antenna = wifi_fw.antenna_from_adt(u.adt)
             _mac = wifi_fw.mac_from_adt(u.adt)
+            _cal = wifi_fw.calblob_from_adt(u.adt)
             _sel, _notes, _col = wifi_fw.select(
                 str(_wifi_dir / "wifi"), _chip, _rev,
                 os.environ.get("J613_WIFI_BOARD", wifi_fw.BOARD_J613), _otp, _antenna,
                 base=os.environ.get("J613_WIFI_FW_BASE"))
-            print(f"Wi-Fi: antenna {_antenna}, MAC {_mac.hex(':') if _mac else 'none'}")
+            print(f"Wi-Fi: antenna {_antenna}, MAC {_mac.hex(':') if _mac else 'none'}, "
+                  f"calibration {len(_cal) if _cal else 0} bytes")
             for _n in _notes:
                 print(f"Wi-Fi: {_n}")
             if "bin" not in _sel:
@@ -507,12 +522,28 @@ if _wifi_mode in ("probe", "boot"):
                 _nv = wifi_fw.nvram_blob(_col.nvram[_sel["txt"].path], _mac) if "txt" in _sel else None
                 _fw, _nvr = _stage(_rd("bin")), _stage(_nv)
                 _clm, _txc, _sig = _stage(_rd("clm_blob")), _stage(_rd("txcap_blob")), _stage(_rd("sig"))
+                _calb = _stage(bytes(_cal) if _cal else None)
                 _seed = _stage(os.urandom(256))[0]
-                _set = _stage(_wstruct.pack("<11Q", *_fw, *_nvr, *_clm, *_txc, *_sig, _seed))[0]
-                ok = p.hv_wifi(1, _set)
-                print(f"Wi-Fi firmware boot: {'OK' if ok else 'FAILED'} "
+                _set = _stage(wifi_net.pack_fw_set(
+                    fw=_fw[0], fw_len=_fw[1], nvram=_nvr[0], nvram_len=_nvr[1],
+                    clm=_clm[0], clm_len=_clm[1], txcap=_txc[0], txcap_len=_txc[1],
+                    sig=_sig[0], sig_len=_sig[1], seed=_seed, cal=_calb[0], cal_len=_calb[1],
+                    mac=wifi_net.mac_u64(_mac)))[0]
+                ok = _wifi_call(1, _set, 120)
+                print(f"Wi-Fi firmware boot + dongle init: {'OK' if ok else 'FAILED'} "
                       f"(fw {_fw[1]} bytes, NVRAM {_nvr[1]}, CLM {_clm[1]}, txcap {_txc[1]}, "
-                      f"signature {_sig[1]}; hv.log 'wlan:' lines)")
+                      f"signature {_sig[1]}, calibration {_calb[1]}; hv.log 'wlan:' lines)")
+                _net = wifi_net.load(str(_wifi_dir / "wifi-net"))
+                if ok and _net:
+                    _ssid = _net[0].decode("utf-8", "replace")
+                    _netaddr = _stage(wifi_net.pack_wlan_net(*_net))[0]
+                    print(f"Wi-Fi: joining \"{_ssid}\" (up to ~40 s)...")
+                    ok = _wifi_call(2, _netaddr, 120)
+                    iface.writemem(_netaddr, bytes(140))  # no key material left behind
+                    print(f"Wi-Fi join \"{_ssid}\": {'CONNECTED' if ok else 'FAILED'} "
+                          f"(hv.log 'wlan:' lines; `j613 input`)")
+                elif ok:
+                    print('Wi-Fi: no network stored (`j613 wifi "<name>"`), not joining')
     except Exception as e:  # older m1n1 without P_HV_WIFI, or no firmware files
         print(f"WARNING: Wi-Fi bring-up skipped ({type(e).__name__}: {e})")
 

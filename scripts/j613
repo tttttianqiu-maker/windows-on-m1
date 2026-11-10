@@ -14,6 +14,7 @@
 #   j613 battery on|off  experimental battery % in Windows (m1n1 reads the SMC)
 #   j613 kbdlight on|off  experimental keyboard backlight (Fn+F5 darker, Fn+F6 brighter)
 #   j613 wifi probe|boot|off  built-in Wi-Fi test: probe = PCIe link, chip, OTP; boot = + firmware
+#   j613 wifi "<name>" ["<password>"]  join that WPA2 network on the next runs (forget: drop it)
 #   j613 wifisel  which Wi-Fi firmware files the next `wifi boot` run would load
 #   j613 status  which build the watcher runs next, and the switches
 #   j613 pull    git pull (repo + submodules)
@@ -56,6 +57,7 @@ case "${1:-help}" in
                *)   [ -e firmware/battery ] && echo "battery: on" || echo "battery: off" ;;
            esac ;;
     wifi)  mkdir -p firmware
+           PY=proxyenv/bin/python; [ -x "$PY" ] || PY=python3
            case "${2:-}" in
                probe) rm -f firmware/wifi-boot; touch firmware/wifi-probe
                       echo "Wi-Fi probe ON for the next runs (PCIe link, chip, OTP; build 50+)" ;;
@@ -63,8 +65,15 @@ case "${1:-help}" in
                       rm -f firmware/wifi-probe; touch firmware/wifi-boot
                       echo "Wi-Fi firmware boot ON for the next runs (build 51+); then: j613 input" ;;
                off)   rm -f firmware/wifi-probe firmware/wifi-boot; echo "Wi-Fi off" ;;
-               *)     if [ -e firmware/wifi-boot ]; then echo "wifi: boot"
-                      elif [ -e firmware/wifi-probe ]; then echo "wifi: probe"; else echo "wifi: off"; fi ;;
+               forget) exec "$PY" tools/j613/wifi_net.py forget ;;
+               "")    if [ -e firmware/wifi-boot ]; then echo "wifi: boot"
+                      elif [ -e firmware/wifi-probe ]; then echo "wifi: probe"; else echo "wifi: off"; fi
+                      "$PY" tools/j613/wifi_net.py show ;;
+               *)     [ "$2" = join ] && shift   # `j613 wifi join "<name>"` for a network called boot/off/...
+                      [ -d firmware/wifi ] || { echo "first: j613 wififw (the Wi-Fi firmware from the Air's macOS)"; exit 1; }
+                      "$PY" tools/j613/wifi_net.py set "$2" ${3+"$3"} || exit 1
+                      rm -f firmware/wifi-probe; touch firmware/wifi-boot
+                      echo "Wi-Fi boot + join ON for the next runs (build 51+); then: j613 input" ;;
            esac ;;
     wifisel) [ -d firmware/wifi ] || { echo "no firmware/wifi yet: j613 wififw"; exit 1; }
            A=$(ls -t runs/adt-*.bin 2>/dev/null | head -n 1)
@@ -87,6 +96,7 @@ case "${1:-help}" in
            if [ -e firmware/wifi-boot ]; then echo "Wi-Fi      : boot (experimental)"
            elif [ -e firmware/wifi-probe ]; then echo "Wi-Fi      : probe (experimental)"; else echo "Wi-Fi      : off"; fi
            [ -d firmware/wifi ] && echo "Wi-Fi fw   : $(ls -d firmware/wifi/C-* 2>/dev/null | wc -l | tr -d ' ') macOS folder(s)" || echo "Wi-Fi fw   : absent (j613 wififw)"
+           { [ -x proxyenv/bin/python ] && proxyenv/bin/python tools/j613/wifi_net.py show || python3 tools/j613/wifi_net.py show; } 2>/dev/null
            pgrep -f j613-autorun.sh >/dev/null && echo "watcher    : running" || echo "watcher    : NOT running (j613 watch)" ;;
     pull)  git pull && git submodule update --init ;;
     fw)    mkdir -p firmware && mv ~/Downloads/tpmtfw-j613.bin firmware/ && ls -la firmware/tpmtfw-j613.bin ;;
@@ -97,5 +107,5 @@ case "${1:-help}" in
     setup) mkdir -p "$HOME/bin" && ln -sf "$ROOT/scripts/j613" "$HOME/bin/j613" &&
            { grep -q 'HOME/bin' "$HOME/.zshrc" 2>/dev/null || echo 'export PATH="$HOME/bin:$PATH"' >> "$HOME/.zshrc"; } &&
            echo "done: open a new terminal and type  j613" ;;
-    *)     sed -n 3,22p "$0" | sed 's/^# *//' ;;
+    *)     sed -n 3,23p "$0" | sed 's/^# *//' ;;
 esac
