@@ -57,6 +57,8 @@ if has "battery: Windows battery ON"; then
     else fail "Windows never looked at the battery (Mu FD older than build 44, or Windows did not boot)"; fi
     if has "battery: Windows read _BST"; then ok "Windows reads the charge level (_BST)"
     else info "Windows never read the charge level (_BST) yet"; fi
+    if has "battery: Windows connected the battery event interrupt"; then ok "instant updates: Windows connected the battery event interrupt (GED)"
+    else info "no battery event interrupt from Windows (GED not started; Windows polls instead)"; fi
     R=$(last "battery: Windows reads after" | sed 's/^.*battery: //'); [ -n "$R" ] && info "$R"
 else
     B1=$(last "battery: Windows battery" | sed 's/^.*battery: //'); [ -n "$B1" ] && info "battery: $B1"

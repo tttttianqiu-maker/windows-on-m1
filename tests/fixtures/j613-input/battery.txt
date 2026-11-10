@@ -21,4 +21,5 @@ TTY> battery: Windows read the battery flags (_STA) the first time (81%)
 TTY> battery: Windows read _BST the first time (81%)
 TTY> battery: read kept back (BUIC FAILED 0, FCC ok 4398, CHIS ok), Windows keeps 81% (held 1)
 TTY> battery: #3 82% battery  fcc 4398 mAh design 4562 mAh -730 mA 12400 mV cycles 57 cells 3 (keys 11111111)
-TTY> battery: Windows reads after 180 s: flags 14, _BST 6 (last 25 s ago), _BIX 1
+TTY> battery: Windows connected the battery event interrupt (GED, vINTID 66)
+TTY> battery: Windows reads after 180 s: flags 14, _BST 6 (last 25 s ago), _BIX 1, _EVT 2 of 2 events sent

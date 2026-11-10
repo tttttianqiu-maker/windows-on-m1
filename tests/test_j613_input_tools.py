@@ -45,7 +45,8 @@ def test_battery_section():
     assert "1 SMC reads kept back" in out
     assert "[ok]   Windows found the battery" in out
     assert "[ok]   Windows reads the charge level" in out
-    assert "_BST 6 (last 25 s ago)" in out
+    assert "_BST 6 (last 25 s ago)" in out and "_EVT 2 of 2 events sent" in out
+    assert "[ok]   instant updates: Windows connected the battery event interrupt" in out
     assert "[FAIL]" not in out
     # battery off: one info line, no section
     assert "-- battery" not in verdict("success.txt")

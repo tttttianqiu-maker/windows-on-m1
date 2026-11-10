@@ -537,6 +537,23 @@ static void test_battery_regs(void)
     assert(dchid_batt_update(&b, &r) && b.regs[DCHID_BATT_PCT] == 15);
     assert(b.regs[DCHID_BATT_FLG] == (DCHID_BATT_PRESENT | DCHID_BATT_AC | DCHID_BATT_CHARGING));
 
+    /* GED events between snapshots (BGED _EVT -> Notify) */
+    u32 o[DCHID_BATT_NREGS], n[DCHID_BATT_NREGS];
+    memset(o, 0, sizeof(o));
+    memcpy(n, b.regs, sizeof(n)); /* charging on AC, 15 % */
+    assert(dchid_batt_events(o, n) == (DCHID_BATT_EVT_BST | DCHID_BATT_EVT_PSR | DCHID_BATT_EVT_BIX));
+    memcpy(o, n, sizeof(o));
+    assert(dchid_batt_events(o, n) == 0);
+    n[DCHID_BATT_RCAP] += 40;
+    assert(dchid_batt_events(o, n) == DCHID_BATT_EVT_BST);
+    n[DCHID_BATT_FLG] = DCHID_BATT_PRESENT | DCHID_BATT_DISCHARGING; /* unplugged */
+    assert(dchid_batt_events(o, n) == (DCHID_BATT_EVT_BST | DCHID_BATT_EVT_PSR));
+    memcpy(n, o, sizeof(n));
+    n[DCHID_BATT_CYC]++;
+    n[DCHID_BATT_SEQ]++; /* the refresh counter alone is no event */
+    assert(dchid_batt_events(o, n) == DCHID_BATT_EVT_BIX);
+    assert(DCHID_BATT_EVT == 11 && DCHID_BATT_BASE + 4 * DCHID_BATT_EVT == 0x12c);
+
     /* the guest reads the block at DCHID_BATT_BASE, below the descriptor window */
     assert(DCHID_BATT_BASE + 4 * DCHID_BATT_NREGS <= 0x400 && DCHID_BATT_BASE >= 0x50);
 }
