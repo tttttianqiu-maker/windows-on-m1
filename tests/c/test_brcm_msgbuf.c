@@ -180,7 +180,7 @@ static u32 clm_len_got, clm_chunks, txcap_chunks;
 static u16 clm_flags[8], txcap_flag;
 static u8 event_mask[32];
 static u32 event_mask_len;
-static bool fw_is_up, sup_wpa;
+static bool fw_is_up, sup_wpa, allmulti;
 static u32 pm_mode = 99, infra = 99, wpa_auth, wsec, auth = 99, mfp = 99;
 static u8 pmk_key[256];
 static u16 pmk_len, pmk_flags;
@@ -304,6 +304,8 @@ static s16 fw_ioctl(u32 cmd, const u8 *in, u32 in_len, u32 out_len, u8 *resp, u3
             mfp = g32(data, 0);
         else if (!strcmp(c->name, "sup_wpa"))
             sup_wpa = g32(data, 0);
+        else if (!strcmp(c->name, "allmulti"))
+            allmulti = g32(data, 0);
         else if (!strcmp(c->name, "join")) {
             CHECK(fw_is_up && infra == 1 && sup_wpa && wpa_auth == 0x80 && wsec == 4 && !auth);
             joins++;
@@ -621,7 +623,7 @@ int main(void)
     for (u32 i = 0; i < sizeof(wanted); i++)
         expect_mask[wanted[i] / 8] |= 1 << (wanted[i] % 8);
     CHECK(!memcmp(event_mask, expect_mask, 27));
-    CHECK(fw_is_up && pm_mode == 2 && infra == 1);
+    CHECK(fw_is_up && pm_mode == 2 && infra == 1 && allmulti);
     /* order of brcmf_c_preinit_dcmds, then interface up */
     int a = find_call(0, 263, "cur_etheraddr"), b = find_call(a, 98, NULL),
         c = find_call(b, 263, "clmload"), d = find_call(c, 263, "txcapload"),
