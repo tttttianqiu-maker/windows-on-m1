@@ -65,9 +65,19 @@ else
 fi
 
 K1=$(last "kbdlight: " | sed 's/^.*kbdlight: //'); [ -n "$K1" ] && info "keyboard backlight: $K1"
-if has "wlan: stage 2 probe"; then
-    echo "-- built-in Wi-Fi (probe)"
-    grep -a "wlan: " "$L" | sed 's/^.*wlan: /  [..]   /' | head -20
+if has "wlan: (stage 2 probe|probe \\()"; then
+    echo "-- built-in Wi-Fi"
+    if has "wlan: link (up after|already up)"; then ok "PCIe link to the Wi-Fi chip is up"
+    else fail "no PCIe link to the Wi-Fi chip (lines below say where it stopped)"; fi
+    has "wlan: probe OK" && ok "Broadcom chip attached (cores, RAM, OTP)"
+    if has "wlan: firmware started after"; then ok "Wi-Fi firmware is running"
+    elif has "wlan: (firmware did not start|firmware does not fit|firmware set incomplete|bad shared RAM)"; then fail "Wi-Fi firmware did not start"; fi
+    grep -a "wlan: " "$L" | grep -a -v "wlan: fw: " | sed 's/^.*wlan: /  [..]   /' | head -40
+    N=$(grep -a -c "wlan: fw: " "$L")
+    if [ "$N" -gt 0 ]; then
+        info "firmware console ($N lines, first 15):"
+        grep -a "wlan: fw: " "$L" | sed 's/^.*wlan: fw: /           /' | head -15
+    fi
 fi
 
 echo "-- Windows driver (AppleMtpInput)"

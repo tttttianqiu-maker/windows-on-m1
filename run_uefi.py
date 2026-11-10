@@ -461,15 +461,60 @@ if os.environ.get("J613_KBDLIGHT") or _kbl.exists():
     except Exception as e:  # older m1n1 without P_HV_KBD_BACKLIGHT
         print(f"WARNING: this m1n1 cannot drive the keyboard backlight ({e})")
 
-# `j613 wifi probe`: built-in Wi-Fi bring-up, stage 2 (m1n1 wlan.c): PCIe link to the
-# BCM4388 and its chip id, logged as "wlan: ...". Experimental, off by default.
-if (os.environ.get("J613_WIFI") == "probe" or
-        (pathlib.Path(__file__).resolve().parent / "firmware" / "wifi-probe").exists()):
+# Built-in Wi-Fi (m1n1 wlan.c + brcm.c), experimental, off by default:
+#   `j613 wifi probe` (firmware/wifi-probe): PCIe link, chip id, Broadcom cores, RAM, OTP.
+#   `j613 wifi boot`  (firmware/wifi-boot): the probe, then the BCM4388 firmware from the
+#     owner's macOS (`j613 wififw` -> firmware/wifi) picked the way Asahi Linux does
+#     (tools/j613/wifi_fw.py) and booted; its console lands in hv.log as "wlan: fw: ...".
+_wifi_dir = pathlib.Path(__file__).resolve().parent / "firmware"
+_wifi_mode = os.environ.get("J613_WIFI") or (
+    "boot" if (_wifi_dir / "wifi-boot").exists() else
+    "probe" if (_wifi_dir / "wifi-probe").exists() else "")
+if _wifi_mode in ("probe", "boot"):
     try:
-        ok = p.hv_wifi(0)
-        print(f"Wi-Fi probe (stage 2): {'OK' if ok else 'FAILED'} (hv.log 'wlan:' lines)")
-    except Exception as e:  # older m1n1 without P_HV_WIFI
-        print(f"WARNING: this m1n1 has no Wi-Fi bring-up ({e})")
+        import struct as _wstruct
+        from tools.j613 import wifi_fw
+        _info = u.malloc(0x100)
+        iface.writemem(_info, bytes(0x100))
+        ok = p.hv_wifi(0, _info)
+        (_magic, _dev, _chip, _rev, _up, _att, _otpv, _rambase, _ramsize,
+         _mod, _ven, _ver) = _wstruct.unpack("<IHHBBBBII16s16s16s", iface.readmem(_info, 68))
+        _cstr = lambda b: b.split(b"\0", 1)[0].decode("ascii", "replace")
+        _otp = ({"module": _cstr(_mod), "vendor": _cstr(_ven), "version": _cstr(_ver)}
+                if _magic == 0x4E414C57 and _otpv else None)
+        print(f"Wi-Fi probe: {'OK' if ok else 'FAILED'}: chip {_chip:x} rev {_rev}, "
+              f"OTP {_otp or 'none'} (hv.log 'wlan:' lines)")
+        if _wifi_mode == "boot" and ok and _magic == 0x4E414C57 and _att:
+            _antenna = wifi_fw.antenna_from_adt(u.adt)
+            _mac = wifi_fw.mac_from_adt(u.adt)
+            _sel, _notes, _col = wifi_fw.select(
+                str(_wifi_dir / "wifi"), _chip, _rev,
+                os.environ.get("J613_WIFI_BOARD", wifi_fw.BOARD_J613), _otp, _antenna,
+                base=os.environ.get("J613_WIFI_FW_BASE"))
+            print(f"Wi-Fi: antenna {_antenna}, MAC {_mac.hex(':') if _mac else 'none'}")
+            for _n in _notes:
+                print(f"Wi-Fi: {_n}")
+            if "bin" not in _sel:
+                print("WARNING: no Wi-Fi firmware for this chip in firmware/wifi (`j613 wififw`)")
+            else:
+                def _stage(data):
+                    if not data:
+                        return 0, 0
+                    addr = u.malloc(len(data))
+                    iface.writemem(addr, data)
+                    return addr, len(data)
+                _rd = lambda k: pathlib.Path(_sel[k].path).read_bytes() if k in _sel else None
+                _nv = wifi_fw.nvram_blob(_col.nvram[_sel["txt"].path], _mac) if "txt" in _sel else None
+                _fw, _nvr = _stage(_rd("bin")), _stage(_nv)
+                _clm, _txc, _sig = _stage(_rd("clm_blob")), _stage(_rd("txcap_blob")), _stage(_rd("sig"))
+                _seed = _stage(os.urandom(256))[0]
+                _set = _stage(_wstruct.pack("<11Q", *_fw, *_nvr, *_clm, *_txc, *_sig, _seed))[0]
+                ok = p.hv_wifi(1, _set)
+                print(f"Wi-Fi firmware boot: {'OK' if ok else 'FAILED'} "
+                      f"(fw {_fw[1]} bytes, NVRAM {_nvr[1]}, CLM {_clm[1]}, txcap {_txc[1]}, "
+                      f"signature {_sig[1]}; hv.log 'wlan:' lines)")
+    except Exception as e:  # older m1n1 without P_HV_WIFI, or no firmware files
+        print(f"WARNING: Wi-Fi bring-up skipped ({type(e).__name__}: {e})")
 
 # Guest clock: Mu's RTC (AppleSiliconPkg VirtualRealTimeClockLib) reads ADT /chosen
 # "wom-wall-clock" = (local seconds since 1970, the Air's CNTPCT at that moment) once
