@@ -8104,3 +8104,34 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
   networks cannot work); "handshake failed: password wrong?" after both the
   PMK and the passphrase attempt; SError or reset while the chip DMAs =
   `j613 wifi off`. Evidence: hv.log ("wlan:" and "wlan: fw:" lines).
+
+### EXP-20261110-060 — built-in Wi-Fi, stage 5: the Windows adapter (planned, build 52)
+
+- Recorded 2026-11-10 23:45 UTC. Build 52 = build 51 + stage 5 (CHG-042..048):
+  m1n1 47da099 (virtio-net 00:01.0 hv_vnet.c, allmulti), Mu 3ed50fd (_PRT dev1 ->
+  GSIV 67), root after 5cca073. Artifact and SHA-256 below once built. Includes
+  everything EXP-059 tests; if 52 misbehaves where 51 did not, the adapter is the
+  difference (`j613 wifi off` removes it: 00:01.0 only exists with the Wi-Fi up).
+- Sources: OASIS virtio 1.2 (4.1 PCI transport, 2.7 split rings, 5.1 net device);
+  virtio-win kvm-guest-drivers-windows defa22a: VirtIO/VirtIOPCIModern.c (capability
+  walk, common-cfg use, two-part addresses, reset wait), NetKVM ParaNdis_Common.cpp
+  (line interrupts when CM_RESOURCE_INTERRUPT_MESSAGE is absent, header size 12 with
+  VERSION_1, link state read in every DPC), ParaNdis6_Impl.cpp (legacy ISR reads the
+  ISR byte); Asahi docs windows-11-vm (virtio-net-pci + NetKVM w11/ARM64 on Apple
+  Silicon); Linux brcmfmac core.c (allmulti); this repo's hv_pci.c / hv_nvme.c INTx
+  scheme (boot-CPU injection, EOI re-arm, IPI kick).
+- Run: once in macOS on the Air (same visit as scripts/j613-wifi-fw.sh if not done):
+  scripts/j613-netkvm.sh (virtio-win ISO -> NetKVM/w11/ARM64 on WINSRC + one-shot
+  install job). Then build 52 with `j613 wifi "<network>"` set.
+- Expected: hv.log "vnet: virtio-net 00:01.0 for the guest, MAC ...", "vnet: BAR0 at
+  0x40...", after the install job "vnet: guest driver up (features 0x100010020, ...)",
+  "vnet: link up for the guest", 60 s "vnet: guest driver up, link up, rx N ... tx M"
+  with both growing; `j613 input` Wi-Fi adapter section all [ok]; Windows: "Red Hat
+  VirtIO Ethernet Adapter" connected, an IP from the network's DHCP;
+  j613-jobs/net-snapshot.txt (2 min after boot) with ipconfig, ping 1.1.1.1, DNS and
+  the msftconnecttest probe. scripts/j613-netkvm.sh --read in macOS shows it.
+- Failure modes: no "guest driver up" = NetKVM not installed (netkvm.txt says why:
+  signature not trusted, pnputil error); "vnet: device error ... NEEDS_RESET" = ring
+  or address mismatch (the line says which); driver up but rx/tx 0 = interrupt path
+  (watch "interrupts" in the vnet line, GSIV 67 in Device Manager); Windows hang or
+  bugcheck right after the driver starts = `j613 wifi off`, report the stop code.
