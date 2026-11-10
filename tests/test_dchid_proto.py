@@ -29,7 +29,8 @@ def test_dchid_guest_contract(tmp_path):
     srcs += sorted((proto / "src").glob("*.c"))
     subprocess.run(
         ["cc", "-std=c11", "-Wall", "-Wextra", "-Werror", "-DDCHID_HOST_TEST",
-         "-I", str(proto / "include")] + [str(s) for s in srcs] + ["-o", str(exe)],
+         "-I", str(proto / "include"), "-I", str(ROOT / "drivers/apple-input/windows/include")]
+        + [str(s) for s in srcs] + ["-o", str(exe)],
         check=True)
     out = subprocess.run([str(exe)], check=True, capture_output=True, text=True)
     assert "all tests passed" in out.stdout

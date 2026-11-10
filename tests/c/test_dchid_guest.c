@@ -13,6 +13,7 @@
 #include "apple_spihid.h"
 #include "apple_mtp.h"
 #include "apple_trackpad.h"
+#include "apple_precision_touchpad_descriptor.h"
 
 static void test_report_size_fixup_matches_linux(void)
 {
@@ -294,8 +295,62 @@ static void test_fn_layer(void)
     assert(r[3] == 0x01);
 }
 
+static void le16(u8 *p, int v)
+{
+    p[0] = (u8)(v & 0xff);
+    p[1] = (u8)((v >> 8) & 0xff);
+}
+
+/*
+ * The whole Windows trackpad path with the J613's real dimensions
+ * (EXP-20261108-045: 12194 x 7408 1/100 mm, x -5787..6256, y -157..7102):
+ * dims -> axis contract -> PTP descriptor patch, and a sanitized MTP frame ->
+ * decode -> tracker -> PTP input report.
+ */
+static void test_j613_trackpad_pipeline(void)
+{
+    u8 dims[16];
+    struct ai_trackpad_dimensions dim;
+    struct ai_trackpad_axis_contract axes;
+    static u8 ptp_desc[AI_PTP_DESCRIPTOR_SIZE];
+    u8 in[DCHID_MT_HDR_SIZE + 3 * 30], mt[DCHID_MT_GUEST_MAX];
+    u8 spi[DCHID_MT_GUEST_MAX + AI_MTP_SPI_PREFIX_SIZE];
+    size_t n, spi_len, ptp_len;
+    struct ai_apple_trackpad_frame frame;
+    static struct ai_trackpad_tracker tracker;
+    struct ai_trackpad_output_frame out;
+    struct ai_ptp_feature_state features;
+    u8 report[64];
+
+    dims[0] = 12194 & 0xff; dims[1] = 12194 >> 8; dims[2] = dims[3] = 0;
+    dims[4] = 7408 & 0xff; dims[5] = 7408 >> 8; dims[6] = dims[7] = 0;
+    le16(dims + 8, -5787);
+    le16(dims + 10, -157);
+    le16(dims + 12, 6256);
+    le16(dims + 14, 7102);
+    assert(ai_mtp_dimensions_parse(dims, &dim) == AI_OK);
+    assert(ai_trackpad_axis_contract_from_dimensions(&dim, &axes) == AI_OK);
+    assert(AiPrecisionTouchpadDescriptorPatch(ptp_desc, sizeof(ptp_desc), &axes));
+
+    /* one finger in the middle, report with two spare slots (trimmed by m1n1) */
+    make_mt(in, sizeof(in), 1, 0);
+    le16(in + DCHID_MT_HDR_SIZE + 4, 234);  /* abs_x */
+    le16(in + DCHID_MT_HDR_SIZE + 6, 3472); /* abs_y */
+    assert(dchid_mt_sanitize(in, sizeof(in), mt, sizeof(mt), &n) == 1);
+    assert(ai_mtp_trackpad_to_spi(mt, n, spi, sizeof(spi), &spi_len) == AI_OK);
+    assert(ai_apple_trackpad_decode(spi, spi_len, &frame) == AI_OK && frame.count == 1);
+    memset(&tracker, 0, sizeof(tracker));
+    assert(ai_trackpad_tracker_update(&tracker, &frame, &out) == AI_OK);
+    ai_ptp_feature_init(&features);
+    features.input_mode = 3; /* what Windows sets through SET_FEATURE */
+    assert(ai_ptp_encode_input(&axes, &out, 100, &features, report, sizeof(report), &ptp_len) ==
+           AI_OK);
+    assert(ptp_len > 0);
+}
+
 int main(void)
 {
+    test_j613_trackpad_pipeline();
     test_hid_scan();
     test_fn_layer();
     test_report_size_fixup_matches_linux();
