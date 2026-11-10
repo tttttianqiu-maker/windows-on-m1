@@ -7,8 +7,9 @@ where it says "on the Air".
 
 1. Download the newest build into `~/Downloads` and delete older
    `j613-*.tar.gz` there: the watcher always runs the newest tarball.
-   - `j613-safe-48.tar.gz` (m1n1 9602b57, Mu 511d7e0): use this one for
-     every run below. Same as 47 plus an emergency off switch (below).
+   - `j613-ged-49.tar.gz` (m1n1 89bfd89, Mu 11c809d): use this one for
+     every run below. Same as 48 (emergency off switch, below) plus instant
+     battery updates for run 2. 48 is fine for run 1.
    - Already started run 1 with 44 or 45? Fine, finish it; use 47 after.
 2. `j613 pull` (brings `j613 battery`, `j613 kbdlight`, `j613 input`, the
    clock hand-over and this file). If it complains about divergent branches:
@@ -34,7 +35,7 @@ j613 battery off
 j613 status
 ```
 
-Expected: next build `j613-safe-48`, MTP on, trackpad fw present, Air
+Expected: next build `j613-ged-49`, MTP on, trackpad fw present, Air
 screen on, USB reset off, battery off, kbdlight off, watcher running (`j613
 watch` in its own Terminal if not).
 
@@ -78,8 +79,9 @@ j613 again
 ```
 
 Proxy mode as usual. In Windows: a battery icon in the taskbar with the same
-percentage macOS shows. Plug and unplug the charger once, wait a minute or two
-each time (no instant notifications yet: Windows polls). Then `j613 input`
+percentage macOS shows. Plug and unplug the charger once and watch the icon:
+it should follow within about a minute (m1n1 reads the battery every 60 s and
+tells Windows when something changed). Then `j613 input`
 and paste it: the battery section says whether Windows found the battery and
 how often it polls.
 

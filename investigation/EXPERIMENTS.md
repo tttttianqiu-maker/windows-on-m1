@@ -7970,9 +7970,12 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
   quiesces the SMC RTKit after each read as hv_dchid does. Windows' inbox
   cmbatt reads BAT0/ADP1 from the AVHD page.
 - Expected: battery icon with the macOS percentage, plugged-in state
-  following the charger (with a delay: no ACPI notifications yet, Windows
-  polls); `j613 input` battery section all [ok]; "Windows reads after ..."
-  gives the poll interval for _BST.
+  following the charger; `j613 input` battery section all [ok]; "Windows
+  reads after ..." gives the poll interval for _BST. Build 49+: the battery
+  GED (CHG-031/032) should make plug/unplug show within ~60 s (one m1n1
+  refresh): "Windows connected the battery event interrupt" and "_EVT n of m
+  events sent" with n = m. If the GED shows up with a problem in Device
+  Manager, the battery still works by polling.
 - Watch: hitches every 60 s (SMC boot handshake on the interruptible CPU,
   1 s timeouts per step), "read kept back" lines, any reset. Abort switch:
   `j613 battery off`.
@@ -8017,3 +8020,9 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
   now also hides the keyboard/trackpad ACPI device, so Windows does not load
   AppleMtpInput. Use if Windows crashes or reboots in a loop once the driver
   starts (EXP-054). Expected Mu log: "ACPI: AVHD (APPL0613) hidden by the host".
+
+### Build 49 (artifact only)
+
+- j613-ged-49 = build 48 + battery change events (CHG-031..033): GED BGED
+  (ACPI0013) on vINTID 66, present only with `j613 battery on`. Same as 48 for
+  every run with the battery off.
