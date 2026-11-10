@@ -391,6 +391,54 @@ static void test_fn_media(void)
     assert(r[3] == 0 && r[4] == 0);
 }
 
+static void test_fn_backlight(void)
+{
+    struct dchid_fn_state st;
+    u8 r[DCHID_KBD_REPORT_LEN];
+    memset(&st, 0, sizeof(st));
+
+    /* F5 alone stays F5 */
+    memset(r, 0, sizeof(r));
+    r[0] = 1;
+    r[3] = 0x3e;
+    dchid_kbd_fn_translate(&st, r, false);
+    assert(dchid_kbd_fn_backlight(&st, r) == 0 && r[3] == 0x3e);
+    memset(r + 3, 0, 6);
+    dchid_kbd_fn_translate(&st, r, false);
+    assert(dchid_kbd_fn_backlight(&st, r) == 0);
+
+    /* Fn+F6 with A held: +1 once, F6 leaves the report, A stays */
+    r[3] = 0x04;
+    r[4] = 0x3f;
+    dchid_kbd_fn_translate(&st, r, true);
+    assert(dchid_kbd_fn_backlight(&st, r) == 1);
+    assert(r[3] == 0x04 && r[4] == 0);
+    r[3] = 0x04;
+    r[4] = 0x3f; /* still held: no repeat */
+    dchid_kbd_fn_translate(&st, r, true);
+    assert(dchid_kbd_fn_backlight(&st, r) == 0 && r[4] == 0);
+    /* released, then Fn+F5: -1 */
+    memset(r + 3, 0, 6);
+    dchid_kbd_fn_translate(&st, r, true);
+    assert(dchid_kbd_fn_backlight(&st, r) == 0);
+    r[3] = 0x3e;
+    dchid_kbd_fn_translate(&st, r, true);
+    assert(dchid_kbd_fn_backlight(&st, r) == -1 && r[3] == 0);
+    /* Fn released while F5 is held: F5 keeps its Fn meaning until released */
+    r[3] = 0x3e;
+    dchid_kbd_fn_translate(&st, r, false);
+    assert(dchid_kbd_fn_backlight(&st, r) == 0 && r[3] == 0);
+    /* the media layer still works on the same report */
+    memset(r + 3, 0, 6);
+    dchid_kbd_fn_translate(&st, r, false);
+    dchid_kbd_fn_backlight(&st, r);
+    r[3] = 0x45; /* F12 */
+    dchid_kbd_fn_translate(&st, r, true);
+    assert(dchid_kbd_fn_backlight(&st, r) == 0);
+    u8 c[DCHID_CONSUMER_REPORT_LEN];
+    assert(dchid_kbd_fn_media(&st, r, c) && c[1] == 0xe9 && r[3] == 0);
+}
+
 static void test_battery_regs(void)
 {
     struct dchid_batt_raw r;
@@ -495,6 +543,7 @@ static void test_battery_regs(void)
 
 int main(void)
 {
+    test_fn_backlight();
     test_battery_regs();
     test_fn_media();
     test_j613_trackpad_pipeline();

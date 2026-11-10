@@ -443,6 +443,19 @@ if (os.environ.get("J613_BATTERY") == "1" or
     except Exception as e:  # older m1n1 without P_HV_BATTERY_MODE
         print(f"WARNING: this m1n1 cannot serve the battery ({e})")
 
+# `j613 kbdlight on [level]`: m1n1 drives the keyboard backlight (fpwm1) and takes
+# Fn+F5/Fn+F6 for darker/brighter. Experimental, off by default.
+_kbl = pathlib.Path(__file__).resolve().parent / "firmware" / "kbdlight"
+if os.environ.get("J613_KBDLIGHT") or _kbl.exists():
+    try:
+        _lvl = int(os.environ.get("J613_KBDLIGHT") or (_kbl.read_text().strip() or "3"))
+        if p.hv_kbd_backlight(max(0, min(8, _lvl))):
+            print(f"Keyboard backlight ON, level {_lvl}/8 (Fn+F5 darker, Fn+F6 brighter)")
+        else:
+            print("WARNING: m1n1 could not set up the keyboard backlight (see hv.log 'kbdlight:')")
+    except Exception as e:  # older m1n1 without P_HV_KBD_BACKLIGHT
+        print(f"WARNING: this m1n1 cannot drive the keyboard backlight ({e})")
+
 # Guest clock: Mu's RTC (AppleSiliconPkg VirtualRealTimeClockLib) reads ADT /chosen
 # "wom-wall-clock" = (local seconds since 1970, the Air's CNTPCT at that moment) once
 # at boot and counts from there; before, Windows got 2019-01 on every boot. Local time:

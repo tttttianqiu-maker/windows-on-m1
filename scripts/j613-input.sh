@@ -62,6 +62,8 @@ else
     B1=$(last "battery: Windows battery" | sed 's/^.*battery: //'); [ -n "$B1" ] && info "battery: $B1"
 fi
 
+K1=$(last "kbdlight: " | sed 's/^.*kbdlight: //'); [ -n "$K1" ] && info "keyboard backlight: $K1"
+
 echo "-- Windows driver (AppleMtpInput)"
 if ! has "avhd guest read MAGIC"; then
     fail "the Windows driver never touched the device (not installed, not loading, or Windows did not get this far)"
