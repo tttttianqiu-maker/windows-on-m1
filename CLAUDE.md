@@ -116,7 +116,8 @@ Open, in priority order:
    (hv_vnet.c, INTA -> vINTID 67 via the DSDT _PRT) that NetKVM drives. Host tests run
    the protocol code against a simulated dongle (tests/test_brcm_msgbuf.py) and the
    device model the way NetKVM drives it (tests/test_vnet.py). EXP-059 (build 51:
-   firmware + join) then EXP-060 (build 52: Windows adapter).
+   firmware + join) then EXP-060 (build 52: Windows adapter). Run steps, log lines and
+   limits: `docs/J613-WIFI.md`.
 
 ## References in this repo / scratch
 
