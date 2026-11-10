@@ -65,6 +65,10 @@ else
 fi
 
 K1=$(last "kbdlight: " | sed 's/^.*kbdlight: //'); [ -n "$K1" ] && info "keyboard backlight: $K1"
+if has "wlan: stage 2 probe"; then
+    echo "-- built-in Wi-Fi (probe)"
+    grep -a "wlan: " "$L" | sed 's/^.*wlan: /  [..]   /' | head -20
+fi
 
 echo "-- Windows driver (AppleMtpInput)"
 if ! has "avhd guest read MAGIC"; then

@@ -461,6 +461,16 @@ if os.environ.get("J613_KBDLIGHT") or _kbl.exists():
     except Exception as e:  # older m1n1 without P_HV_KBD_BACKLIGHT
         print(f"WARNING: this m1n1 cannot drive the keyboard backlight ({e})")
 
+# `j613 wifi probe`: built-in Wi-Fi bring-up, stage 2 (m1n1 wlan.c): PCIe link to the
+# BCM4388 and its chip id, logged as "wlan: ...". Experimental, off by default.
+if (os.environ.get("J613_WIFI") == "probe" or
+        (pathlib.Path(__file__).resolve().parent / "firmware" / "wifi-probe").exists()):
+    try:
+        ok = p.hv_wifi(0)
+        print(f"Wi-Fi probe (stage 2): {'OK' if ok else 'FAILED'} (hv.log 'wlan:' lines)")
+    except Exception as e:  # older m1n1 without P_HV_WIFI
+        print(f"WARNING: this m1n1 has no Wi-Fi bring-up ({e})")
+
 # Guest clock: Mu's RTC (AppleSiliconPkg VirtualRealTimeClockLib) reads ADT /chosen
 # "wom-wall-clock" = (local seconds since 1970, the Air's CNTPCT at that moment) once
 # at boot and counts from there; before, Windows got 2019-01 on every boot. Local time:
