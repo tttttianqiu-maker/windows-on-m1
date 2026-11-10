@@ -443,5 +443,25 @@ if (os.environ.get("J613_BATTERY") == "1" or
     except Exception as e:  # older m1n1 without P_HV_BATTERY_MODE
         print(f"WARNING: this m1n1 cannot serve the battery ({e})")
 
+# Guest clock: Mu's RTC (AppleSiliconPkg VirtualRealTimeClockLib) reads ADT /chosen
+# "wom-wall-clock" = (local seconds since 1970, the Air's CNTPCT at that moment) once
+# at boot and counts from there; before, Windows got 2019-01 on every boot. Local time:
+# Windows keeps the RTC in local time (oobe-unattend.xml: W. Europe Standard Time).
+# Older Mu builds ignore the property.
+try:
+    import struct as _struct, time as _time
+    from m1n1.sysreg import CNTPCT_EL0 as _CNTPCT_EL0
+    _now = _time.time()
+    _cnt = u.mrs(_CNTPCT_EL0)
+    _wall = int(_now) + _time.localtime(_now).tm_gmtoff
+    hv.adt["chosen"].wom_wall_clock = _struct.pack("<QQ", _wall, _cnt)
+    if len(hv.adt.build()) > align(u.ba.devtree_size):
+        del hv.adt["chosen"].wom_wall_clock
+        print("WARNING: guest clock not set (no room left in the guest ADT)")
+    else:
+        print(f"Guest clock: {_time.strftime('%Y-%m-%d %H:%M:%S %Z', _time.localtime(_now))}")
+except Exception as e:
+    print(f"WARNING: guest clock not set ({e})")
+
 print("Starting guest...")
 hv.start()
