@@ -8080,9 +8080,15 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
   brcmf_is_linkup with the firmware supplicant), join_param.c,
   fwil_types.h (PMK struct 262 bytes, ext join v0/v1). m1n1 memory.c (the
   unaligned dc_civac_range gap) and dart.c.
-- Build 51: m1n1 8fd10d0 (stage 3 eb5e4d6 + 3b/4 2b7bdad + size checks),
-  Mu unchanged (c0278d4 line, as build 50), root b113a78 + ledger. Artifact
-  and SHA-256 below once built.
+- Build 51 = j613-wifi-51.tar.gz (SHA-256 99fb2fab22222ff4ce52eb77e8c97c40
+  2dc7279491e341b9e95010dd57012e65): m1n1 8fd10d0 (stage 3 eb5e4d6 + 3b/4
+  2b7bdad + size checks), Mu 11c809d (unchanged since build 49), root 5e17024;
+  MANIFEST profile debug, display virtual, debug uart, source_dirty false;
+  m1n1.macho c872e359..., J613_EFI.fd 9bf5dee6..., boot.bin 4ec2d9f6....
+  Built in the cloud workspace: `BOARD=j613 sh scripts/build-development.sh
+  --display virtual --debug uart` (STANDALONE_BUILD_CONTAINER=never), packed
+  `tar -czf j613-wifi-51.tar.gz -C dist/j613 debug-uart`. Recovery: `j613 wifi
+  off` (the Wi-Fi code only runs when switched on) or the build 50 tarball.
 - Run: in macOS on the Air once, scripts/j613-wifi-fw.sh -> Hackintosh
   ~/Downloads, `j613 wififw`; then `j613 wifi "<network>"` (prompts for the
   password; stored in firmware/wifi-net, 0600, never logged), everything else
