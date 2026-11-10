@@ -7903,6 +7903,11 @@ Superseded by EXP-20261107-024 before a hardware run (build 15 was never booted)
 
 ### EXP-20261109-053 — keyboard + trackpad with m1n1 ae2af33 (planned)
 
+- Updated 2026-11-10: build 42 (j613-kbdfix-42: m1n1 5df3acb = ae2af33 +
+  hid-apple Fn layer and report-1 layout check, Mu c0cd337, built in the
+  cloud) replaces build 41 for this run; owner checklist docs/J613-TONIGHT.md,
+  verdict `j613 input`, Windows-side fallback scripts/j613-windows-diag.sh
+  (CHG-20261110-012..013).
 - Build: m1n1 ae2af33 on the Hackintosh (scripts/j613-build-m1n1.sh
   kbdfix-41, Mu c0cd337 reused from build 40). Windows side unchanged (driver
   from EXP-049 already installed, no WinPE pass).
