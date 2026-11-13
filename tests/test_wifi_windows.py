@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 AUTO = ROOT / "tools" / "j613" / "autoinstall"
 SCRIPT = ROOT / "scripts" / "j613-netkvm.sh"
-JOBS = ("j613-netkvm.cmd", "j613-net-snapshot.cmd")
+JOBS = ("j613-netkvm.cmd", "j613-net-snapshot.cmd", "j613-nopwexpire.cmd")
 
 
 def test_jobs_never_stop_windows_and_need_no_console():

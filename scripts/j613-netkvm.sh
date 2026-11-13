@@ -11,14 +11,17 @@
 #      says it is a valid Red Hat signature) and sets up a boot-time network snapshot.
 #   curl -fsSL https://raw.githubusercontent.com/tttttianqiu-maker/windows-on-m1/j613-bringup/scripts/j613-netkvm.sh -o /tmp/netkvm.sh && bash /tmp/netkvm.sh
 # Results after a Windows boot: bash /tmp/netkvm.sh --read
+# Also stages j613-nopwexpire.cmd (local passwords never expire, so the "password has
+# expired" screen cannot block the autologon). Only that, no download: --password-only
 set -euo pipefail
-LATEST=0; READ_ONLY=0; ISO=
+LATEST=0; READ_ONLY=0; PW_ONLY=0; ISO=
 for a in "$@"; do
     case "$a" in
         --latest) LATEST=1 ;;
         --read) READ_ONLY=1 ;;
+        --password-only) PW_ONLY=1 ;;
         *.iso) ISO=$a ;;
-        *) echo "usage: $0 [--latest] [--read] [virtio-win.iso]" >&2; exit 2 ;;
+        *) echo "usage: $0 [--latest] [--read] [--password-only] [virtio-win.iso]" >&2; exit 2 ;;
     esac
 done
 die() { printf '\033[1;31mSTOP: %s\033[0m\n' "$*" >&2; exit 1; }
@@ -27,12 +30,29 @@ W=/Volumes/WINSRC
 J=$W/j613-jobs
 [ -d "$W" ] || die "WINSRC not mounted (it is the exFAT partition on the Air's SSD)"
 
-for f in "$J/netkvm.txt" "$J/net-snapshot.txt"; do
+for f in "$J/nopwexpire.txt" "$J/netkvm.txt" "$J/net-snapshot.txt"; do
     [ -f "$f" ] || continue
     printf '\n\033[1;36m================ %s (%s)\033[0m\n' "$(basename "$f")" "$(date -r "$f" '+%Y-%m-%d %H:%M')"
     tr -d '\r' < "$f" | head -n 300
 done
 [ "$READ_ONLY" = 1 ] && exit 0
+
+# job files from one reviewed commit (CRLF for cmd.exe)
+PIN=ed1079071c1b2b3ff50c7be05a5a876d2d1f76de
+RAW=https://raw.githubusercontent.com/tttttianqiu-maker/windows-on-m1/$PIN/tools/j613/autoinstall
+mkdir -p "$J/lib"
+fetch() { # $1 file, $2 destination
+    curl -fsSL "$RAW/$1" -o "$2.tmp" || die "download of $1 failed"
+    perl -pi -e 's/\r?\n/\r\n/' "$2.tmp"
+    mv "$2.tmp" "$2"
+}
+
+# 0. passwords never expire (runs once at the next Windows boot, before sign-in)
+fetch j613-nopwexpire.cmd "$J/j613-nopwexpire.cmd"
+grep -q "J613 nopwexpire" "$J/j613-nopwexpire.cmd" || die "password job download failed"
+rm -f "$J/nopwexpire.txt"
+say "staged: next Windows boot sets local passwords to never expire (j613-jobs/nopwexpire.txt)"
+[ "$PW_ONLY" = 1 ] && exit 0
 
 # 1. the ISO
 if [ -z "$ISO" ]; then
@@ -61,15 +81,7 @@ cp "$SRC"/* "$W/j613-netkvm/"
 ls "$W"/j613-netkvm/*.cat >/dev/null 2>&1 || die "no catalog (.cat) next to netkvm.inf"
 say "NetKVM ARM64 staged on WINSRC ($VER)"
 
-# 3. the one-shot job and its helper, from one reviewed commit (CRLF for cmd.exe)
-PIN=ed417c5f8cb7fdc9c1ebf7c5c0783ba658c68da6
-RAW=https://raw.githubusercontent.com/tttttianqiu-maker/windows-on-m1/$PIN/tools/j613/autoinstall
-mkdir -p "$J/lib"
-fetch() { # $1 file, $2 destination
-    curl -fsSL "$RAW/$1" -o "$2.tmp" || die "download of $1 failed"
-    perl -pi -e 's/\r?\n/\r\n/' "$2.tmp"
-    mv "$2.tmp" "$2"
-}
+# 3. the one-shot install job and its helper
 fetch j613-net-snapshot.cmd "$J/lib/j613-net-snapshot.cmd"
 grep -q "J613 net snapshot" "$J/lib/j613-net-snapshot.cmd" || die "snapshot script download failed"
 fetch j613-netkvm.cmd "$J/j613-netkvm.cmd"
